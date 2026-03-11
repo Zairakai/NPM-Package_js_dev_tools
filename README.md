@@ -1,93 +1,206 @@
-# JS Dev Tools
+# @zairakai/js-dev-tools
 
+[![Main][pipeline-main-badge]][pipeline-main-link]
+[![Develop][pipeline-develop-badge]][pipeline-develop-link]
 
+[![npm][npm-badge]][npm-link]
+[![GitLab Release][gitlab-release-badge]][gitlab-release]
+[![License][license-badge]][license]
 
-## Getting started
+[![Node.js][node-badge]][node]
+[![ESLint][eslint-badge]][eslint]
+[![Prettier][prettier-badge]][prettier]
+[![Stylelint][stylelint-badge]][stylelint]
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+One unified toolkit to set up JavaScript/TypeScript quality tooling. Context-aware by default — it adapts to both standalone packages and full-stack applications.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+---
 
-## Add your files
+## Why @zairakai/js-dev-tools?
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+| Concept | Benefit |
+| :--- | :--- |
+| **Unified Logic** | The same quality gate for all your projects. Only the target (package or app) changes, not the rigor. |
+| **Concentrated Configs** | Centralized, opinionated configurations for all your tools. Avoid configuration drift across projects. |
+| **Unified Workflow** | One set of `make` commands to rule them all. Whether it's a small library or a large application, the quality gate remains the same. |
+| **Auto-Syncing CI** | Automatically updates GitLab CI ref tags in your `.gitlab-ci.yml` when you update the package. Keep your pipelines current without manual effort. |
+| **Zero Friction** | Automated setup script handles the heavy lifting on install. |
 
+---
+
+## Features
+
+| Tool | Responsibility |
+| :--- | :--- |
+| **ESLint** | Flat config with TypeScript, Vue 3, and import rules. |
+| **Prettier** | Opinionated formatter with SCSS and Tailwind support. |
+| **Stylelint** | SCSS linting with modern property ordering. |
+| **Markdownlint** | Consistent Markdown across all documentation. |
+| **Vitest** | Unit testing with v8 coverage. |
+| **Knip** | Dead code and unused dependency detection. |
+| **TypeScript** | Shared `tsconfig.base.json` for strict mode builds. |
+| **GitLab CI** | Reusable pipeline templates for npm packages and Laravel full-stack. |
+| **Git Hooks** | Automated quality checks and ticket prefixing. |
+| **Makefile** | Unified `make quality`, `make test`, `make ci` targets (delegated to core). |
+| **Shell Scripts** | Automated setup and config publishing. |
+
+On install, the `postinstall` script:
+
+- creates `Makefile` if missing (delegating to `node_modules/@zairakai/js-dev-tools/tools/make/core.mk`)
+- creates `.editorconfig`
+- creates `config/dev-tools/eslint.config.js` baseline
+- reports optional packages not yet installed
+
+---
+
+## Install
+
+```bash
+npm install --save-dev @zairakai/js-dev-tools
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/zairakai/npm-packages/js-dev-tools.git
-git branch -M main
-git push -uf origin main
+
+For Laravel full-stack projects, pair with `zairakai/laravel-dev-tools`:
+
+```bash
+composer require --dev zairakai/laravel-dev-tools
+npm install --save-dev @zairakai/js-dev-tools
+php artisan dev-tools:publish --fullstack
 ```
 
-## Integrate with your tools
-
-* [Set up project integrations](https://gitlab.com/zairakai/npm-packages/js-dev-tools/-/settings/integrations)
-
-## Collaborate with your team
-
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
-
-## Test and Deploy
-
-Use the built-in continuous integration in GitLab.
-
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
-
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+---
 
 ## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+```bash
+make quality       # eslint + prettier + stylelint + knip + markdownlint + shellcheck
+make quality-fix   # auto-fix all fixable issues
+make test          # vitest
+make test-all      # vitest + bats
+make test-coverage # vitest with coverage report
+make typecheck     # tsc --noEmit
+make build         # tsup or tsc
+make ci            # full pipeline simulation
+make doctor        # environment diagnostics
+```
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+---
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+## Configuration
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+Extend the shared configs in your project files:
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+```js
+// eslint.config.js
+export { default } from '@zairakai/js-dev-tools/eslint'
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+// prettier.config.js
+export { default } from '@zairakai/js-dev-tools/prettier'
 
-## License
-For open source projects, say how it is licensed.
+// stylelint.config.js
+export { default } from '@zairakai/js-dev-tools/stylelint'
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+// vitest.config.js
+import baseConfig from '@zairakai/js-dev-tools/vitest'
+import { defineConfig } from 'vitest/config'
+export default defineConfig({ ...baseConfig, test: { ...baseConfig.test } })
+```
+
+```json
+// tsconfig.json
+{ "extends": "@zairakai/js-dev-tools/tsconfig" }
+```
+
+---
+
+## Publishing configs
+
+Publish individual config files to `config/dev-tools/` (never overwritten unless `--force`):
+
+```bash
+# All at once
+bash node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh --publish
+
+# By group
+bash node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh --publish=quality
+bash node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh --publish=style
+bash node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh --publish=testing
+bash node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh --publish=hooks
+bash node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh --publish=gitlab-ci
+bash node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh --publish=typescript
+
+# Single files
+bash node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh --publish=eslint
+bash node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh --publish=prettier
+bash node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh --publish=stylelint
+bash node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh --publish=vitest
+bash node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh --publish=tsconfig
+```
+
+---
+
+## GitLab CI pipeline templates
+
+Include in your consumer project's `.gitlab-ci.yml`:
+
+```yaml
+# npm package pipeline
+include:
+  - project: 'zairakai/npm-packages/js-dev-tools'
+    ref: v1.0.0          # pin to a release tag for reproducible builds
+    file: '.gitlab/ci/pipeline-js-package.yml'
+
+variables:
+  CACHE_KEY: "my-package-v1"
+  NPM_PACKAGE_NAME: "@myorg/my-package"
+```
+
+Available templates:
+
+- `.gitlab/ci/pipeline-js-package.yml` — security → install → validate → quality → test → build → publish → release
+- `.gitlab/ci/pipeline-js-app.yml` — JS quality + test jobs for Laravel full-stack apps
+
+---
+
+## Development
+
+```bash
+make quality          # full quality check
+make test-all         # vitest + bats
+make bats             # shell script tests only
+make doctor           # environment diagnostics
+```
+
+---
+
+## Getting Help
+
+[![License][license-badge]][license]
+[![Security Policy][security-badge]][security]
+[![Issues][issues-badge]][issues]
+
+**Made with ❤️ by [Zairakai][ecosystem]**
+
+<!-- Reference Links -->
+[pipeline-main-badge]: https://gitlab.com/zairakai/npm-packages/js-dev-tools/badges/main/pipeline.svg?ignore_skipped=true&key_text=Main
+[pipeline-main-link]: https://gitlab.com/zairakai/npm-packages/js-dev-tools/-/commits/main
+[pipeline-develop-badge]: https://gitlab.com/zairakai/npm-packages/js-dev-tools/badges/develop/pipeline.svg?ignore_skipped=true&key_text=Develop
+[pipeline-develop-link]: https://gitlab.com/zairakai/npm-packages/js-dev-tools/-/commits/develop
+[npm-badge]: https://img.shields.io/npm/v/@zairakai/js-dev-tools
+[npm-link]: https://www.npmjs.com/package/@zairakai/js-dev-tools
+[gitlab-release-badge]: https://img.shields.io/gitlab/v/release/zairakai/npm-packages/js-dev-tools?logo=gitlab
+[gitlab-release]: https://gitlab.com/zairakai/npm-packages/js-dev-tools/-/releases
+[license-badge]: https://img.shields.io/badge/license-MIT-blue.svg
+[license]: ./LICENSE
+[security-badge]: https://img.shields.io/badge/security-scanned-green.svg
+[security]: ./SECURITY.md
+[issues-badge]: https://img.shields.io/gitlab/issues/open-raw/zairakai%2Fnpm-packages%2Fdev-tools?logo=gitlab&label=Issues
+[issues]: https://gitlab.com/zairakai/npm-packages/js-dev-tools/-/issues
+[node-badge]: https://img.shields.io/badge/node.js-%3E%3D22-green.svg?logo=node.js
+[node]: https://nodejs.org
+[eslint-badge]: https://img.shields.io/badge/code%20style-eslint-4B32C3.svg?logo=eslint
+[eslint]: https://eslint.org
+[prettier-badge]: https://img.shields.io/badge/formatter-prettier-F7B93E.svg?logo=prettier
+[prettier]: https://prettier.io
+[stylelint-badge]: https://img.shields.io/badge/css-stylelint-263238.svg?logo=stylelint
+[stylelint]: https://stylelint.io
+[ecosystem]: https://gitlab.com/zairakai

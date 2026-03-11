@@ -1,0 +1,39 @@
+# Contributing
+
+> This project follows the [Zairakai Global Contributing Guide][handbook-contributing].  
+> Please read it before contributing. The sections below document project-specific workflow.
+
+---
+
+## Development Workflow
+
+| Step | Command / Action | Description |
+| :--- | :--- | :--- |
+| **1. Install** | `npm install && bash scripts/install-hooks.sh` | Install dependencies and set up git hooks. |
+| **2. Branch** | `git checkout -b feature/#TICKET-name` | Create a feature branch from `main`. |
+| **3. Code** | *(your IDE)* | Implement your changes following quality standards. |
+| **4. Quality** | `make quality` | Run the full quality gate. |
+| **5. Test** | `make test-all` | Ensure all tests (Vitest + BATS) are passing. |
+| **6. Commit** | `git commit -m "type(scope): #TICKET subject"` | Use [Conventional Commits][git-rules] format. |
+| **7. Push** | `git push origin feature/#TICKET-name` | Push and open a Merge Request to `main`. |
+
+---
+
+## Quality Targets
+
+| Command | Tool | Description |
+| :--- | :--- | :--- |
+| `make quality` | All | Full static analysis and formatting gate. |
+| `make eslint` | ESLint | Run JS/TS static analysis. |
+| `make prettier` | Prettier | Check code formatting. |
+| `make stylelint` | Stylelint | Run SCSS/CSS static analysis. |
+| `make typecheck` | TSC | Run TypeScript type checking. |
+| `make markdownlint` | Markdownlint | Validate Markdown documentation. |
+| `make test` | Vitest | Run unit tests with coverage. |
+| `make bats` | BATS | Run shell script integration tests. |
+
+---
+
+[handbook-contributing]: https://gitlab.com/zairakai/handbook/-/blob/main/CONTRIBUTING.md
+[git-rules]: https://gitlab.com/zairakai/handbook/-/blob/main/policies/git-rules.md
+[issues]: PACKAGE_GITLAB_ISSUES

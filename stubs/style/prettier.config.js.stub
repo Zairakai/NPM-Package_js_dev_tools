@@ -1,0 +1,16 @@
+/**
+ * Project Prettier configuration.
+ * Extends the @zairakai/js-dev-tools base config — customize as needed.
+ *
+ * Example of adding project-specific overrides:
+ *   module.exports = {
+ *     ...baseConfig,
+ *     printWidth: 100,
+ *   }
+ */
+
+const baseConfig = require('@zairakai/js-dev-tools/config/prettier.config.js')
+
+module.exports = {
+  ...baseConfig,
+}

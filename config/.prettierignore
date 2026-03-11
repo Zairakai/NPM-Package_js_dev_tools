@@ -1,0 +1,11 @@
+build/
+coverage/
+dist/
+node_modules/
+public/
+vendor/
+*.lock
+*.md
+*.min.css
+*.min.js
+gl-*.json

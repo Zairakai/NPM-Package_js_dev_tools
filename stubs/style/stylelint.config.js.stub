@@ -1,0 +1,17 @@
+/**
+ * Project Stylelint configuration.
+ * Extends the @zairakai/js-dev-tools base config — customize as needed.
+ *
+ * Example of adding project-specific rules:
+ *   export default {
+ *     ...baseConfig,
+ *     rules: {
+ *       ...baseConfig.rules,
+ *       'color-no-invalid-hex': true,
+ *     },
+ *   }
+ */
+
+import baseConfig from '@zairakai/js-dev-tools/config/stylelint.config.js'
+
+export default { ...baseConfig }

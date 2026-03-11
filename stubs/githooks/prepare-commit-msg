@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+#
+# Zairakai Git Hooks - Commit Message Preparer
+# Auto-prefixes the ticket number from branch name (e.g. feature/ABC-123 -> ABC-123: )
+#
+
+set -euo pipefail
+
+COMMIT_MSG_FILE=$1
+BRANCH_NAME=$(git symbolic-ref --short HEAD 2>/dev/null || true)
+
+# Skip for special commits
+COMMIT_SOURCE=${2:-}
+if [[ "$COMMIT_SOURCE" == "merge" || "$COMMIT_SOURCE" == "squash" || "$COMMIT_SOURCE" == "message" ]]; then
+    exit 0
+fi
+
+# Extract ticket number (Jira/GitLab style: PROJECT-123)
+TICKET_RE='[A-Z]+-[0-9]+'
+if [[ $BRANCH_NAME =~ $TICKET_RE ]]; then
+    TICKET="${BASH_REMATCH[0]}"
+    COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+    # Only prefix if not already present
+    if [[ ! $COMMIT_MSG =~ $TICKET ]]; then
+        # If it's a conventional commit type: subject format, inject after type:
+        # Before: feat: my change
+        # After: feat(ABC-123): my change
+        CONVENTIONAL_RE='^([a-z]+)(\(.*\))?!?: (.+)$'
+        if [[ $COMMIT_MSG =~ $CONVENTIONAL_RE ]]; then
+            TYPE="${BASH_REMATCH[1]}"
+            REMAINDER="${BASH_REMATCH[3]}"
+            echo "${TYPE}(${TICKET}): ${REMAINDER}" > "$COMMIT_MSG_FILE"
+        else
+            # Fallback: simple prefix
+            echo "${TICKET}: ${COMMIT_MSG}" > "$COMMIT_MSG_FILE"
+        fi
+    fi
+fi

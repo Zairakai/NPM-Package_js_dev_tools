@@ -1,0 +1,18 @@
+/**
+ * Project Vitest configuration.
+ * Extends the @zairakai/js-dev-tools base config — customize as needed.
+ *
+ * Example of adding project-specific settings (e.g. Vue plugin, jsdom):
+ *   import vue from '@vitejs/plugin-vue'
+ *   export default mergeConfig(baseConfig, defineConfig({
+ *     plugins: [vue()],
+ *     test: {
+ *       environment: 'jsdom',
+ *     },
+ *   }))
+ */
+
+import { defineConfig, mergeConfig } from 'vitest/config'
+import baseConfig from '@zairakai/js-dev-tools/config/vitest.config.js'
+
+export default mergeConfig(baseConfig, defineConfig({}))

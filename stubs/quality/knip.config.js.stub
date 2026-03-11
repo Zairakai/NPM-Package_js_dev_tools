@@ -1,0 +1,14 @@
+/**
+ * Knip configuration
+ * @see https://knip.dev/reference/configuration
+ */
+export default {
+  // Extend the base configuration from @zairakai/js-dev-tools
+  // (Assuming the base config is compatible or you want to start fresh)
+  // For now, we point to the project structure
+  entry: ['src/index.ts!', 'src/index.js!'],
+  project: ['src/**/*.ts!', 'src/**/*.js!'],
+  ignore: ['**/*.d.ts'],
+  ignoreDependencies: [],
+  ignoreBinaries: [],
+}

@@ -1,0 +1,18 @@
+# ================================
+# DEV-TOOLS — Pipeline CI/CD
+# ================================
+# Self-hosted pipeline: uses local template (local:)
+# because this project IS the source of the templates.
+#
+# Consumer projects use include:project instead.
+# See .gitlab/ci/pipeline-js-package.yml for full documentation.
+
+include:
+  - local: ".gitlab/ci/pipeline-js-package.yml"
+
+variables:
+  CACHE_KEY: "js-dev-tools-v1"
+  NPM_PACKAGE_NAME: "@zairakai/js-dev-tools"
+
+  # Self-hosted mode: scripts live in this repo, not in node_modules/
+  DEV_TOOLS_SCRIPTS: "scripts"

@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+#
+# Zairakai Git Hooks - Commit Message Validator
+# Ensures commit messages follow Conventional Commits format
+#
+# To bypass (emergency only):
+#   git commit --no-verify
+
+set -euo pipefail
+
+# ANSI Colors
+RED='\033[0;31m'
+NC='\033[0m'
+
+COMMIT_MSG_FILE=$1
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+# Conventional Commits regex
+# Format: <type>(<scope>): <subject>
+CONVENTIONAL_RE='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|init)(\(.+\))?!?: .+$'
+
+if [[ ! $COMMIT_MSG =~ $CONVENTIONAL_RE ]]; then
+    echo ""
+    echo -e "${RED}❌ Invalid commit message format!${NC}"
+    echo ""
+    echo "Commit messages must follow Conventional Commits:"
+    echo "  feat: add new feature"
+    echo "  fix: resolve a bug"
+    echo "  chore(deps): update dependencies"
+    echo ""
+    echo "See: https://www.conventionalcommits.org/"
+    echo ""
+    exit 1
+fi

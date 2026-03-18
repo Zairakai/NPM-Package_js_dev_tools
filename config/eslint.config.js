@@ -16,14 +16,12 @@ const gitignoreConfig = existsSync(gitignorePath) ? [includeIgnoreFile(gitignore
 
 export default [
   ...gitignoreConfig,
+
   // Base JavaScript rules
   pluginJs.configs.recommended,
 
-  // Vue configurations
+  // Vue flat config (sets up vue-eslint-parser as the Vue file parser)
   ...pluginVue.configs['flat/strongly-recommended'],
-
-  // Prettier integration (must be last)
-  eslintConfigPrettier,
 
   // Base configuration for all files
   {
@@ -112,25 +110,21 @@ export default [
     },
   },
 
-  // TypeScript specific configuration
+  // TypeScript configuration for .ts / .tsx files
   {
-    files: ['**/*.ts', '**/*.tsx', '**/*.vue'],
+    files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
       parser: parserTypeScript,
       parserOptions: {
         project: './tsconfig.json',
-        extraFileExtensions: ['.vue'],
       },
     },
     plugins: {
       '@typescript-eslint': pluginTypeScript,
     },
     rules: {
-      // Disable JS rules that conflict with TS
       'no-unused-vars': 'off',
       'no-undef': 'off',
-
-      // Enable TS rules
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -148,13 +142,47 @@ export default [
     },
   },
 
-  // Test files configuration
+  // TypeScript configuration for .vue files
+  // vue-eslint-parser (set by pluginVue above) must remain the primary parser.
+  // TypeScript parser is passed as parserOptions.parser for <script> blocks only.
+  {
+    files: ['**/*.vue'],
+    languageOptions: {
+      parserOptions: {
+        parser: parserTypeScript,
+        project: './tsconfig.json',
+        extraFileExtensions: ['.vue'],
+      },
+    },
+    plugins: {
+      '@typescript-eslint': pluginTypeScript,
+    },
+    rules: {
+      'no-unused-vars': 'off',
+      'no-undef': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      '@typescript-eslint/prefer-nullish-coalescing': 'error',
+      '@typescript-eslint/prefer-optional-chain': 'error',
+      '@typescript-eslint/no-non-null-assertion': 'warn',
+    },
+  },
+
+  // Test files
   {
     files: ['**/*.test.{js,ts}', '**/*.spec.{js,ts}', '**/tests/**/*'],
     languageOptions: {
       globals: {
         ...globals.jest,
-        ...globals.vitest,
         describe: 'readonly',
         it: 'readonly',
         test: 'readonly',
@@ -172,7 +200,7 @@ export default [
     },
   },
 
-  // Configuration files
+  // Config files
   {
     files: ['**/*.config.{js,ts}', '**/.*rc.{js,ts}'],
     rules: {
@@ -195,4 +223,7 @@ export default [
       '**/*.min.js',
     ],
   },
+
+  // Prettier — must be last to disable all formatting rules
+  eslintConfigPrettier,
 ]

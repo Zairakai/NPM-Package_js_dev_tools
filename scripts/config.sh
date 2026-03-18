@@ -135,9 +135,9 @@ export -f ensure_bin_optional
 # Check if files matching pattern exist
 has_files() {
     local pattern="$1"
-    # SC2086: unquoted intentionally — we need word splitting + glob expansion via nullglob
+    # SC2086: unquoted intentionally — we need word splitting + glob expansion via nullglob+globstar
     # shellcheck disable=SC2086
-    ( shopt -s nullglob; set -- $pattern; [ $# -gt 0 ] )
+    ( shopt -s nullglob globstar; set -- $pattern; [ $# -gt 0 ] )
 }
 export -f has_files
 

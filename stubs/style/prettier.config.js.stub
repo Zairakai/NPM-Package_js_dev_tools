@@ -3,14 +3,15 @@
  * Extends the @zairakai/js-dev-tools base config — customize as needed.
  *
  * Example of adding project-specific overrides:
- *   module.exports = {
+ *   import baseConfig from '@zairakai/js-dev-tools/config/prettier.config.js'
+ *   export default {
  *     ...baseConfig,
  *     printWidth: 100,
  *   }
  */
 
-const baseConfig = require('@zairakai/js-dev-tools/config/prettier.config.js')
+import baseConfig from '@zairakai/js-dev-tools/config/prettier.config.js'
 
-module.exports = {
+export default {
   ...baseConfig,
 }

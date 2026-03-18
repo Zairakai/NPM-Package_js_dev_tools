@@ -634,6 +634,70 @@ do_publish() {
 }
 
 # ============================================================================
+# GitLab CI — Ref Synchronizer
+# Mirrors GitlabCiSynchronizer.php from laravel-dev-tools.
+# Runs on every postinstall (npm install / npm update).
+# Reads the installed version of @zairakai/js-dev-tools and updates the
+# ref: in the project's .gitlab-ci.yml if it is out of sync.
+# ============================================================================
+
+sync_gitlab_ci_ref() {
+    local gitlab_ci="${PROJECT_ROOT}/.gitlab-ci.yml"
+    local gitlab_project="zairakai/npm-packages/js-dev-tools"
+
+    [[ -f "$gitlab_ci" ]] || return 0
+    grep -qF "$gitlab_project" "$gitlab_ci" || return 0
+
+    # Resolve installed version from the package's own package.json
+    local installed_version
+    installed_version="$(node -e "try{const p=require('${DEV_TOOLS_ROOT}/package.json');console.log('v'+(p.version||'').replace(/^v/,''))}catch(e){}" 2>/dev/null || echo "")"
+
+    [[ -n "$installed_version" ]] || return 0
+
+    # Extract the current ref: value inside the js-dev-tools include block
+    local in_block=false found_project=false current_ref=""
+    while IFS= read -r line; do
+        local trimmed="${line#"${line%%[![:space:]]*}"}"  # ltrim
+
+        if [[ "$trimmed" == "include:" ]]; then
+            in_block=true
+            continue
+        fi
+
+        if [[ "$in_block" == true ]]; then
+            # Exit block on non-indented, non-list line
+            if [[ -n "$trimmed" ]] && [[ "$line" != " "* ]] && [[ "$line" != "-"* ]]; then
+                in_block=false
+                found_project=false
+            fi
+
+            if [[ "$found_project" == false ]] && [[ "$trimmed" == *"$gitlab_project"* ]]; then
+                found_project=true
+                continue
+            fi
+
+            if [[ "$found_project" == true ]] && [[ "$trimmed" == ref:* ]]; then
+                current_ref="${trimmed#ref:}"
+                current_ref="${current_ref#"${current_ref%%[![:space:]]*}"}"  # ltrim
+                current_ref="${current_ref//\'/}"
+                current_ref="${current_ref//\"/}"
+                break
+            fi
+        fi
+    done < "$gitlab_ci"
+
+    [[ -n "$current_ref" ]] || return 0
+    [[ "$current_ref" != "$installed_version" ]] || return 0
+
+    # Auto-fix: replace the ref
+    if sed -i "s|ref: ${current_ref}|ref: ${installed_version}|" "$gitlab_ci"; then
+        echo "  dev-tools: .gitlab-ci.yml ref ${current_ref} → ${installed_version}"
+    else
+        echo "  dev-tools: WARNING — could not update .gitlab-ci.yml ref (manual fix needed)" >&2
+    fi
+}
+
+# ============================================================================
 # Makefile Setup
 # ============================================================================
 
@@ -788,6 +852,9 @@ setup_project() {
             "${PROJECT_ROOT}/config/dev-tools/eslint.config.js" \
             "config/dev-tools/eslint.config.js"
     fi
+
+    # ─── GitLab CI ref sync ───────────────────────────────────────────────────
+    sync_gitlab_ci_ref
 
     # ─── Summary ─────────────────────────────────────────────────────────────
     if [[ "$SILENT_MODE" == "true" ]]; then

@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 #
-# TypeScript Build / Transpilation
-# Compiles TypeScript to JavaScript for distribution.
-#
+# Build script for npm packages.
 # Supports (in order of preference):
-#   1. tsup  — fast, esbuild-based bundler (recommended for npm packages)
-#   2. tsc   — official TypeScript compiler
+#   1. Vite  — detected via vite.config.ts / vite.config.js (runs npm run build)
+#   2. tsup  — fast, esbuild-based bundler (recommended for pure TS packages)
+#   3. tsc   — official TypeScript compiler
 #
 # Usage:
 #   bash scripts/build.sh
 #
 # Recommendation:
-#   Use tsup for npm packages:  npm install --save-dev tsup
-#   Use tsc for apps:           npm install --save-dev typescript
+#   Use Vite for Vue component libraries (vite.config.ts present)
+#   Use tsup for pure TypeScript packages: npm install --save-dev tsup
+#   Use tsc for simple transpilation:      npm install --save-dev typescript
 #
 
 set -euo pipefail
@@ -24,9 +24,14 @@ source "${SCRIPT_DIR}/config.sh"
 TSUP_BIN="${BIN_DIR}/tsup"
 TSC_BIN="${BIN_DIR}/tsc"
 
-log_header "TypeScript Build"
+log_header "Build"
 
-if [[ -f "$TSUP_BIN" ]]; then
+if [[ -f "${PROJECT_ROOT}/vite.config.ts" ]] || [[ -f "${PROJECT_ROOT}/vite.config.js" ]]; then
+    log_info "Builder: Vite (vite.config detected — running npm run build)"
+    npm run build
+    log_success "Build complete — output in dist/"
+
+elif [[ -f "$TSUP_BIN" ]]; then
     log_info "Builder: tsup (fast, esbuild-based)"
     if [[ -n "$TSUP_CONFIG" ]]; then
         "$TSUP_BIN" --config "$TSUP_CONFIG"
@@ -50,9 +55,9 @@ elif [[ -f "$TSC_BIN" ]]; then
     log_success "Build complete"
 
 else
-    log_error "No TypeScript builder found in node_modules/.bin/"
+    log_error "No builder found. Expected one of: vite.config.ts, tsup, tsc"
     log_info "Install one of:"
-    log_info "  npm install --save-dev tsup       (recommended for npm packages)"
-    log_info "  npm install --save-dev typescript (for apps or when you need full tsc control)"
+    log_info "  npm install --save-dev tsup       (recommended for pure TS packages)"
+    log_info "  npm install --save-dev typescript (for simple transpilation)"
     exit 1
 fi

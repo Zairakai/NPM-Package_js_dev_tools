@@ -97,7 +97,7 @@
     "eslint-config-prettier": "^10.0.0",
     "eslint-plugin-vue": "^10.0.0",
     "globals": "^17.0.0",
-    "markdownlint-cli2": "^0.21.0",
+    "markdownlint-cli2": "^0.22.0",
     "prettier": "^3.0.0",
     "prettier-plugin-blade": "^2.1.0",
     "prettier-plugin-organize-imports": "^4.0.0",

@@ -13,7 +13,7 @@
 # USAGE in a consumer project:
 # ─────────────────────────────────────────
 #   include:
-#     - project: 'zairakai/npm-packages/dev-tools'
+#     - project: 'zairakai/npm-packages/js-dev-tools'
 #       ref: main
 #       file: '.gitlab/ci/pipeline-js-package.yml'
 #

@@ -18,7 +18,7 @@
 # Standalone usage (JS side only, alongside a custom PHP pipeline):
 # ─────────────────────────────────────────────────────
 #   include:
-#     - project: 'zairakai/npm-packages/dev-tools'
+#     - project: 'zairakai/npm-packages/js-dev-tools'
 #       ref: main
 #       file: '.gitlab/ci/pipeline-js-app.yml'
 #
@@ -28,7 +28,7 @@
 
 include:
   # All js: jobs come from pipeline-js-package.yml — no duplication.
-  - project: "zairakai/npm-packages/dev-tools"
+  - project: "zairakai/npm-packages/js-dev-tools"
     ref: main
     file: ".gitlab/ci/pipeline-js-package.yml"
 

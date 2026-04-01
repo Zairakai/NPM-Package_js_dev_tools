@@ -29,7 +29,7 @@
 #   variables:
 #     CACHE_KEY: "dev-tools-v1"
 #     NPM_PACKAGE_NAME: "@zairakai/js-dev-tools"
-#     DEV_TOOLS_SCRIPTS: "scripts"
+#     JS_DEV_TOOLS_SCRIPTS: "scripts"
 # ================================
 
 include:
@@ -71,7 +71,7 @@ variables:
   # Paths to dev-tools scripts.
   # Consumer projects do NOT need to override these.
   # dev-tools itself overrides them in its own .gitlab-ci.yml.
-  DEV_TOOLS_SCRIPTS: "node_modules/@zairakai/js-dev-tools/scripts"
+  JS_DEV_TOOLS_SCRIPTS: "node_modules/@zairakai/js-dev-tools/scripts"
 
   # ── NODE ──────────────────────────────────────────────────────────────────
   NODE_VERSION: "22"
@@ -163,7 +163,7 @@ js:validate:markdownlint:
   stage: validate
   image: ${NODE_IMAGE}
   script:
-    - bash "$DEV_TOOLS_SCRIPTS/markdownlint.sh"
+    - bash "$JS_DEV_TOOLS_SCRIPTS/markdownlint.sh"
 
 js:validate:shellcheck:
   <<: *base_job
@@ -174,7 +174,7 @@ js:validate:shellcheck:
   script:
     - |
       if [[ -d scripts/ ]]; then
-        bash "$DEV_TOOLS_SCRIPTS/validate-shellcheck.sh"
+        bash "$JS_DEV_TOOLS_SCRIPTS/validate-shellcheck.sh"
       else
         echo "No scripts/ directory found — skipping ShellCheck"
       fi
@@ -186,7 +186,7 @@ js:quality:lint:
   <<: *job_node
   stage: quality
   script:
-    - bash "$DEV_TOOLS_SCRIPTS/eslint.sh"
+    - bash "$JS_DEV_TOOLS_SCRIPTS/eslint.sh"
   artifacts:
     reports:
       junit: build/reports/eslint.xml
@@ -199,13 +199,13 @@ js:quality:format:
   <<: *job_node
   stage: quality
   script:
-    - bash "$DEV_TOOLS_SCRIPTS/prettier.sh"
+    - bash "$JS_DEV_TOOLS_SCRIPTS/prettier.sh"
 
 js:quality:stylelint:
   <<: *job_node
   stage: quality
   script:
-    - bash "$DEV_TOOLS_SCRIPTS/stylelint.sh"
+    - bash "$JS_DEV_TOOLS_SCRIPTS/stylelint.sh"
 
 js:quality:typecheck:
   <<: *job_node
@@ -213,7 +213,7 @@ js:quality:typecheck:
   script:
     - |
       if [ -f tsconfig.json ] && [ -f node_modules/.bin/tsc ]; then
-        bash "$DEV_TOOLS_SCRIPTS/typecheck.sh"
+        bash "$JS_DEV_TOOLS_SCRIPTS/typecheck.sh"
       else
         echo "TypeScript not configured — skipping (add tsconfig.json + typescript to devDependencies)"
       fi
@@ -222,7 +222,7 @@ js:quality:knip:
   <<: *job_node
   stage: quality
   script:
-    - bash "$DEV_TOOLS_SCRIPTS/knip.sh"
+    - bash "$JS_DEV_TOOLS_SCRIPTS/knip.sh"
 
 js:quality:bats:
   <<: [*base_job, *cache_node]
@@ -244,7 +244,7 @@ js:quality:outdated:
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
   script:
-    - bash "$DEV_TOOLS_SCRIPTS/outdated.sh"
+    - bash "$JS_DEV_TOOLS_SCRIPTS/outdated.sh"
   artifacts:
     paths:
       - build/reports/npm-outdated.json
@@ -259,7 +259,7 @@ js:test:
   stage: test
   image: ${NODE_TEST_IMAGE}
   script:
-    - CI=true bash "$DEV_TOOLS_SCRIPTS/test.sh"
+    - CI=true bash "$JS_DEV_TOOLS_SCRIPTS/test.sh"
   coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
   artifacts:
     reports:
@@ -281,7 +281,7 @@ js:build:
   script:
     - |
       if { [ -f node_modules/.bin/tsup ] || [ -f node_modules/.bin/tsc ]; } && [ -f tsconfig.json ]; then
-        bash "$DEV_TOOLS_SCRIPTS/build.sh"
+        bash "$JS_DEV_TOOLS_SCRIPTS/build.sh"
       else
         echo "No TypeScript builder configured — skipping (install tsup or typescript)"
       fi

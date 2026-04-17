@@ -14,7 +14,6 @@
     "forceConsistentCasingInFileNames": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "exactOptionalPropertyTypes": true,
-    "ignoreDeprecations": "5.0"
+    "exactOptionalPropertyTypes": true
   }
 }

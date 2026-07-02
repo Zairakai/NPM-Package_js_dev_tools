@@ -132,12 +132,25 @@ ensure_bin_optional() {
 }
 export -f ensure_bin_optional
 
-# Check if files matching pattern exist
+# Check if files matching any of the given patterns exist.
+#
+# Variadic: accepts one or more glob patterns, returns success if ANY matches.
+# Callers needing a brace-alternation pattern (e.g. *.{js,ts,vue}) must leave that
+# portion unquoted at the call site so bash's brace expansion splits it into
+# separate arguments BEFORE this function ever sees it — brace expansion only
+# applies to unquoted literal text, never to the contents of a variable, so a
+# pattern like "**/*.{js,ts}" passed as a single quoted string is matched
+# literally (and never matches a real file) instead of being expanded.
 has_files() {
-    local pattern="$1"
-    # SC2086: unquoted intentionally — we need word splitting + glob expansion via nullglob+globstar
-    # shellcheck disable=SC2086
-    ( shopt -s nullglob globstar; set -- $pattern; [ $# -gt 0 ] )
+    local pattern
+    for pattern in "$@"; do
+        # SC2086: unquoted intentionally — we need word splitting + glob expansion via nullglob+globstar
+        # shellcheck disable=SC2086
+        if ( shopt -s nullglob globstar; set -- $pattern; [ $# -gt 0 ] ); then
+            return 0
+        fi
+    done
+    return 1
 }
 export -f has_files
 

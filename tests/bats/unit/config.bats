@@ -95,6 +95,59 @@ teardown() {
 }
 
 # ============================================================================
+# has_files
+# ============================================================================
+
+@test "has_files returns 0 for a plain single-extension glob with a match" {
+    create_test_file "${TEST_TEMP_DIR}/resources/index.scss" "// scss"
+    run has_files "${TEST_TEMP_DIR}/resources/"**/*.scss
+    [ "$status" -eq 0 ]
+}
+
+@test "has_files returns 1 for a plain single-extension glob with no match" {
+    mkdir -p "${TEST_TEMP_DIR}/resources"
+    run has_files "${TEST_TEMP_DIR}/resources/"**/*.scss
+    [ "$status" -eq 1 ]
+}
+
+# Regression for the bug found in nexus (2026-07-02): a brace-alternation
+# pattern passed as a single quoted argument used to always report "no files"
+# because bash never brace-expands the contents of a variable — only unquoted
+# literal text at the call site. has_files must be called with the brace
+# portion left unquoted so the shell splits it into separate arguments.
+@test "has_files matches when called with the brace portion left unquoted (regression)" {
+    create_test_file "${TEST_TEMP_DIR}/resources/js/Foo.vue" "<template />"
+    run has_files "${TEST_TEMP_DIR}/resources/js/"**/*.{js,ts,vue,jsx,tsx}
+    [ "$status" -eq 0 ]
+}
+
+@test "has_files returns 1 when called with the brace portion left unquoted and no match exists" {
+    mkdir -p "${TEST_TEMP_DIR}/resources/js"
+    run has_files "${TEST_TEMP_DIR}/resources/js/"**/*.{js,ts,vue,jsx,tsx}
+    [ "$status" -eq 1 ]
+}
+
+@test "has_files still returns 1 for a literal quoted brace pattern (documents the pitfall)" {
+    create_test_file "${TEST_TEMP_DIR}/resources/js/Foo.vue" "<template />"
+    # Entirely quoted — brace expansion cannot happen here. This is the exact
+    # shape of the bug: it must fail even though a matching file exists.
+    run has_files "${TEST_TEMP_DIR}/resources/js/**/*.{js,ts,vue,jsx,tsx}"
+    [ "$status" -eq 1 ]
+}
+
+@test "has_files returns 0 when any of several patterns matches" {
+    create_test_file "${TEST_TEMP_DIR}/resources/js/Foo.vue" "<template />"
+    run has_files "${TEST_TEMP_DIR}/resources/js/"*.ts "${TEST_TEMP_DIR}/resources/js/"*.vue
+    [ "$status" -eq 0 ]
+}
+
+@test "has_files returns 1 when none of several patterns match" {
+    mkdir -p "${TEST_TEMP_DIR}/resources/js"
+    run has_files "${TEST_TEMP_DIR}/resources/js/"*.ts "${TEST_TEMP_DIR}/resources/js/"*.jsx
+    [ "$status" -eq 1 ]
+}
+
+# ============================================================================
 # resolve_config (4-level cascade: project root → config/dev-tools/ → config/ → DEV_TOOLS_ROOT bundled)
 # ============================================================================
 

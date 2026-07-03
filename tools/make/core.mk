@@ -52,5 +52,8 @@ include $(NPM_DIRECTORY_TOOLS_MAKE_DIR)test.mk
 # 10. BATS shell script testing
 include $(NPM_DIRECTORY_TOOLS_MAKE_DIR)bats.mk
 
-# 11. Utilities (git, npm)
+# 11. Utilities (npm, maintenance)
 include $(NPM_DIRECTORY_TOOLS_MAKE_DIR)utils.mk
+
+# 12. Shared utilities (git, hooks, doctor)
+include $(NPM_DIRECTORY_TOOLS_MAKE_DIR)utils-shared.mk

@@ -23,22 +23,6 @@ package-validate: ## Validate package.json and lockfile sync
 	@$(NPM_DIRECTORY_TOOLS_PROJECT_ROOT)/node_modules/.bin/sort-package-json --check package.json
 
 ## —— 🧰 Utils ——
-.PHONY: doctor
-doctor: ## Run environment diagnostics
-	@bash $(NPM_DIRECTORY_TOOLS_SCRIPTS_DIR)/doctor.sh
-
 .PHONY: outdated
 outdated: ## Check for outdated npm dependencies
 	@bash $(NPM_DIRECTORY_TOOLS_SCRIPTS_DIR)/outdated.sh
-
-.PHONY: install-hooks
-install-hooks: ## Install git hooks into .git/hooks
-	@bash $(NPM_DIRECTORY_TOOLS_SCRIPTS_DIR)/install-hooks.sh
-
-.PHONY: git-update
-git-update: ## Fast-forward all local branches that track a remote
-	@bash $(NPM_DIRECTORY_TOOLS_PACKAGE_ROOT)/tools/scripts/git-update.sh
-
-.PHONY: git-cleanup
-git-cleanup: ## Remove local branches whose remote tracking branch no longer exists
-	@bash $(NPM_DIRECTORY_TOOLS_PACKAGE_ROOT)/tools/scripts/git-cleanup.sh

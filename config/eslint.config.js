@@ -136,7 +136,17 @@ export default [
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
-      '@typescript-eslint/prefer-nullish-coalescing': 'error',
+      '@typescript-eslint/prefer-nullish-coalescing': [
+        'error',
+        {
+          // Boolean OR (e.g. combining two route-guard flags) is not the same
+          // operation as null-coalescing: `??` only falls through on
+          // null/undefined, so `false ?? true` stays `false` where
+          // `false || true` correctly yields `true`. Forcing `??` here would
+          // silently break any logic relying on an explicit `false`.
+          ignorePrimitives: { boolean: true },
+        },
+      ],
       '@typescript-eslint/prefer-optional-chain': 'error',
       '@typescript-eslint/no-non-null-assertion': 'warn',
     },
@@ -171,7 +181,13 @@ export default [
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
-      '@typescript-eslint/prefer-nullish-coalescing': 'error',
+      '@typescript-eslint/prefer-nullish-coalescing': [
+        'error',
+        {
+          // See the .ts block above for why boolean operands are exempted.
+          ignorePrimitives: { boolean: true },
+        },
+      ],
       '@typescript-eslint/prefer-optional-chain': 'error',
       '@typescript-eslint/no-non-null-assertion': 'warn',
     },

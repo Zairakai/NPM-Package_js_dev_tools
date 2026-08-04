@@ -102,8 +102,8 @@
     "prettier-plugin-blade": "^2.1.0",
     "prettier-plugin-organize-imports": "^4.0.0",
     "stylelint": "^17.8.0",
-    "stylelint-config-html": "^1.1.0",
-    "stylelint-config-recommended-vue": "^1.5.0",
+    "stylelint-config-html": "^2.0.0",
+    "stylelint-config-recommended-vue": "^2.0.0",
     "stylelint-config-standard": "^40.0.0",
     "stylelint-config-standard-scss": "^17.0.0",
     "stylelint-order": "^8.0.0",
@@ -113,7 +113,7 @@
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.4",
     "knip": "^6.4.1",
-    "sort-package-json": "^3.6.1",
+    "sort-package-json": "^4.0.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.4",
     "zod": "^4.0.0"

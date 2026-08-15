@@ -13,6 +13,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/config.sh"
+maybe_dockerize "$0" "$@"
 
 TSC_BIN="${BIN_DIR}/tsc"
 VUE_TSC_BIN="${BIN_DIR}/vue-tsc"

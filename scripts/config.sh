@@ -43,6 +43,59 @@ detect_project_type() {
 PROJECT_TYPE="$(detect_project_type)"
 export PROJECT_TYPE
 
+# ─── DOCKER AUTO-DISPATCH ──────────────────────────────────────────────────────
+# Tool scripts that need a real Node runtime (eslint, prettier, stylelint, knip,
+# tsc/vue-tsc, vitest, npm outdated) call maybe_dockerize right after sourcing
+# this file. When a docker-compose stack is already running for this project,
+# the script transparently re-execs itself inside the "node" service instead of
+# depending on whatever Node happens to be on the host.
+#
+# Utility scripts (doctor.sh, install-hooks.sh, git-*.sh, setup-project.sh) never
+# call this — they inspect or act on the host on purpose and must keep doing so.
+#
+# Opt out with DEV_TOOLS_NO_DOCKER=true. Override target service/mount with
+# DEV_TOOLS_NODE_SERVICE / DEV_TOOLS_NODE_SERVICE_MOUNT if a project's compose
+# file diverges from the "node" / "/app" convention.
+DEV_TOOLS_DOCKER_ENV_VARS=(CI COVERAGE)
+
+maybe_dockerize() {
+    local script_path="$1"
+    shift
+
+    # Already running inside a container — nothing to dispatch.
+    [[ -f /.dockerenv ]] && return 0
+
+    # Explicit opt-out.
+    [[ "${DEV_TOOLS_NO_DOCKER:-false}" == "true" ]] && return 0
+
+    # CI runners execute inside a single job image, not this dev compose stack.
+    [[ "${CI:-false}" == "true" || "${GITLAB_CI:-false}" == "true" ]] && return 0
+
+    command -v docker >/dev/null 2>&1 || return 0
+    [[ -f "${PROJECT_ROOT}/docker-compose.yml" ]] || return 0
+
+    local service="${DEV_TOOLS_NODE_SERVICE:-node}"
+    local mount="${DEV_TOOLS_NODE_SERVICE_MOUNT:-/app}"
+
+    # Only dispatch when the target service is already running — never start
+    # it as a side effect of running a quality check.
+    if ! (cd "$PROJECT_ROOT" && docker compose ps --status running --services 2>/dev/null | grep -qx "$service"); then
+        return 0
+    fi
+
+    local rel_script="${script_path#"${PROJECT_ROOT}"/}"
+    local env_flags=()
+    local var
+    for var in "${DEV_TOOLS_DOCKER_ENV_VARS[@]}"; do
+        [[ -n "${!var:-}" ]] && env_flags+=(-e "$var")
+    done
+
+    log_step "Dispatching to '${service}' container..."
+    cd "$PROJECT_ROOT"
+    exec docker compose exec -T "${env_flags[@]}" "$service" bash "${mount}/${rel_script}" "$@"
+}
+export -f maybe_dockerize
+
 # ─── BINARY PATHS ─────────────────────────────────────────────────────────────
 BIN_DIR="${PROJECT_ROOT}/node_modules/.bin"
 export ESLINT_BIN="${BIN_DIR}/eslint"

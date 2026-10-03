@@ -7,7 +7,7 @@
 
 include:
   - project: 'zairakai/npm-packages/js-dev-tools'
-    ref: v0.0.0
+    ref: 0.0.0
     file: '.gitlab/ci/pipeline-js-package.yml'
 
 variables:

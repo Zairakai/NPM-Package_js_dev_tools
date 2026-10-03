@@ -382,7 +382,7 @@ replace_gitlab_ci_placeholders() {
     fi
 
     if [[ -n "$dev_tools_version" ]]; then
-        sed -i "s|v0.0.0|v${dev_tools_version}|g" "$target"
+        sed -i "s|ref: 0\.0\.0|ref: ${dev_tools_version}|g" "$target"
     fi
 }
 
@@ -417,7 +417,7 @@ publish_gitlab_ci_npm() {
 
     track_published ".gitlab-ci.yml"
     log_success "Published: .gitlab-ci.yml"
-    log_info "ref: v0.0.0 will be updated automatically on: ${PM} update @zairakai/js-dev-tools"
+    log_info "ref: 0.0.0 will be updated automatically on: ${PM} update @zairakai/js-dev-tools"
 }
 
 # ============================================================================
@@ -650,7 +650,7 @@ sync_gitlab_ci_ref() {
 
     # Resolve installed version from the package's own package.json
     local installed_version
-    installed_version="$(node -e "try{const p=require('${DEV_TOOLS_ROOT}/package.json');console.log('v'+(p.version||'').replace(/^v/,''))}catch(e){}" 2>/dev/null || echo "")"
+    installed_version="$(node -e "try{const p=require('${DEV_TOOLS_ROOT}/package.json');console.log((p.version||'').replace(/^v/,''))}catch(e){}" 2>/dev/null || echo "")"
 
     [[ -n "$installed_version" ]] || return 0
 

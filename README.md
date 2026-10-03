@@ -146,7 +146,7 @@ Include in your consumer project's `.gitlab-ci.yml`:
 # npm package pipeline
 include:
   - project: 'zairakai/npm-packages/js-dev-tools'
-    ref: v1.0.0          # pin to a release tag for reproducible builds
+    ref: 1.0.0          # pin to a release tag for reproducible builds
     file: '.gitlab/ci/pipeline-js-package.yml'
 
 variables:

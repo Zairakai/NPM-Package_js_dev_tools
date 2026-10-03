@@ -229,7 +229,7 @@ js:quality:bats:
   stage: quality
   image: ${ALPINE_IMAGE}
   before_script:
-    - apk add --no-cache bash bats
+    - apk add --no-cache bash bats git
   script:
     - |
       if [[ -d tests/bats ]]; then

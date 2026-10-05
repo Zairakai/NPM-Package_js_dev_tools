@@ -74,7 +74,7 @@ variables:
   JS_DEV_TOOLS_SCRIPTS: "node_modules/@zairakai/js-dev-tools/scripts"
 
   # ── NODE ──────────────────────────────────────────────────────────────────
-  NODE_VERSION: "22"
+  NODE_VERSION: "24"
   NODE_IMAGE: "zairakai/node:latest-dev"
   NODE_TEST_IMAGE: "zairakai/node:latest-test"
   SHELLCHECK_IMAGE: "koalaman/shellcheck-alpine:v0.10.0"

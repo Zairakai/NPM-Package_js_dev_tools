@@ -142,5 +142,16 @@
   },
   "outdatedIgnore": [
     "prettier-plugin-blade"
-  ]
+  ],
+  "overrides": {
+    "markdown-it": "14.3.2",
+    "nanoid": "3.3.20",
+    "smol-toml": "1.9.0",
+    "colord": "2.9.7",
+    "fast-uri": "3.1.8",
+    "js-yaml": {
+      ".": "4.3.2"
+    },
+    "brace-expansion": "5.0.12"
+  }
 }

@@ -9,6 +9,9 @@
 export default {
   entry: ['config/**/*.js'],
 
+  // The documentation site (VitePress) has its own tools and is not part of the package.
+  ignore: ['docs/**'],
+
   // "Referenced optional peerDependencies" is informational — stylelint is intentionally optional
   exclude: ['optionalPeerDependencies'],
 

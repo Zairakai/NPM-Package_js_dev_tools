@@ -4,6 +4,7 @@
 [![Develop][pipeline-develop-badge]][pipeline-develop-link]
 
 [![npm][npm-badge]][npm-link]
+[![Docs][docs-badge]][docs]
 [![GitLab Release][gitlab-release-badge]][gitlab-release]
 [![License][license-badge]][license]
 
@@ -13,6 +14,8 @@
 [![Stylelint][stylelint-badge]][stylelint]
 
 One unified toolkit to set up JavaScript/TypeScript quality tooling. Context-aware by default — it adapts to both standalone packages and full-stack applications.
+
+**Documentation: [js-dev-tools-3fa149.gitlab.io][docs]**
 
 ---
 
@@ -50,6 +53,12 @@ On install, the `postinstall` script:
 - creates `.editorconfig`
 - creates `config/dev-tools/eslint.config.js` baseline
 - reports optional packages not yet installed
+
+---
+
+## Documentation
+
+The documentation site has this guide and the reference of the API generated from the source with TypeDoc, for every released version (selector at the top right, `next` is `main`). Build it with `cd docs && npm ci && npm run dev`. It is published with GitLab Pages from `main`.
 
 ---
 
@@ -195,7 +204,7 @@ make doctor           # environment diagnostics
 [security]: ./SECURITY.md
 [issues-badge]: https://img.shields.io/gitlab/issues/open-raw/zairakai%2Fnpm-packages%2Fdev-tools?logo=gitlab&label=Issues
 [issues]: https://gitlab.com/zairakai/npm-packages/js-dev-tools/-/issues
-[node-badge]: https://img.shields.io/badge/node.js-%3E%3D22-green.svg?logo=node.js
+[node-badge]: https://img.shields.io/badge/node.js-%3E%3D24-green.svg?logo=node.js
 [node]: https://nodejs.org
 [eslint-badge]: https://img.shields.io/badge/code%20style-eslint-4B32C3.svg?logo=eslint
 [eslint]: https://eslint.org
@@ -204,3 +213,5 @@ make doctor           # environment diagnostics
 [stylelint-badge]: https://img.shields.io/badge/css-stylelint-263238.svg?logo=stylelint
 [stylelint]: https://stylelint.io
 [ecosystem]: https://gitlab.com/zairakai
+[docs]: https://js-dev-tools-3fa149.gitlab.io
+[docs-badge]: https://img.shields.io/badge/docs-online-blue

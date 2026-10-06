@@ -61,7 +61,14 @@ done
 for tag in "${versions[@]}"; do
   echo "== documentation of $tag"
   mkdir -p "$work/$tag"
-  git archive "$tag" docs src README.md package.json package-lock.json tsconfig.json | tar -x -C "$work/$tag"
+  # Only what exists in this tag (a toolkit has no src, an old version has no docs).
+  paths=()
+  for path in docs src config README.md package.json package-lock.json tsconfig.json tsconfig.test.json; do
+    if git cat-file -e "$tag:$path" 2>/dev/null; then
+      paths+=("$path")
+    fi
+  done
+  git archive "$tag" "${paths[@]}" | tar -x -C "$work/$tag"
 
   # What built it: the tag, and this pipeline.
   export CI_COMMIT_REF_NAME="$tag"

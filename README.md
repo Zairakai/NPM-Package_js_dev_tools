@@ -4,6 +4,7 @@
 [![Develop][pipeline-develop-badge]][pipeline-develop-link]
 
 [![npm][npm-badge]][npm-link]
+[![Docs][docs-badge]][docs]
 [![GitLab Release][gitlab-release-badge]][gitlab-release]
 [![License][license-badge]][license]
 
@@ -14,7 +15,7 @@
 
 One unified toolkit to set up JavaScript/TypeScript quality tooling. Context-aware by default — it adapts to both standalone packages and full-stack applications.
 
-**Documentation: <https://js-dev-tools-3fa149.gitlab.io>**
+**Documentation: [js-dev-tools-3fa149.gitlab.io][docs]**
 
 ---
 
@@ -212,3 +213,5 @@ make doctor           # environment diagnostics
 [stylelint-badge]: https://img.shields.io/badge/css-stylelint-263238.svg?logo=stylelint
 [stylelint]: https://stylelint.io
 [ecosystem]: https://gitlab.com/zairakai
+[docs]: https://js-dev-tools-3fa149.gitlab.io
+[docs-badge]: https://img.shields.io/badge/docs-online-blue

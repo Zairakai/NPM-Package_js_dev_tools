@@ -231,6 +231,8 @@ export default [
       'build/**',
       'coverage/**',
       'dist/**',
+      // The documentation site (VitePress) has its own tools and is not part of the package.
+      'docs/**',
       'node_modules/**',
       'public/**',
       'storybook-static/**',

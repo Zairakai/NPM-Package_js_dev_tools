@@ -40,3 +40,6 @@ Thumbs.db
 # LOCAL CONFIG OVERRIDES
 # ======================
 config/dev-tools/
+
+.npm/
+public/

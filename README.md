@@ -190,6 +190,11 @@ make doctor           # environment diagnostics
 **Made with ❤️ by [Zairakai][ecosystem]**
 
 <!-- Reference Links -->
+
+## Statistics
+
+![Statistics of js-dev-tools][stats-card]
+
 [pipeline-main-badge]: https://gitlab.com/zairakai/npm-packages/js-dev-tools/badges/main/pipeline.svg?ignore_skipped=true&key_text=Main
 [pipeline-main-link]: https://gitlab.com/zairakai/npm-packages/js-dev-tools/-/commits/main
 [pipeline-develop-badge]: https://gitlab.com/zairakai/npm-packages/js-dev-tools/badges/develop/pipeline.svg?ignore_skipped=true&key_text=Develop
@@ -215,3 +220,4 @@ make doctor           # environment diagnostics
 [ecosystem]: https://gitlab.com/zairakai
 [docs]: https://js-dev-tools-3fa149.gitlab.io
 [docs-badge]: https://img.shields.io/badge/docs-online-blue
+[stats-card]: https://gitlab.com/zairakai/gitlab-profile/-/raw/main/assets/projects/js-dev-tools.svg

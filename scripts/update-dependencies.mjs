@@ -196,16 +196,40 @@ function assertEnvironment() {
   run('git', ['config', '--global', '--add', 'safe.directory', process.cwd()])
 }
 
+/** GPG is not in the image of the CI: add it with the package manager of the image (Alpine or Debian). */
+function ensureGpg() {
+  const available = () => {
+    try {
+      run('gpg', ['--version'])
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  if (available()) return
+
+  for (const [command, args] of [
+    ['apk', ['add', '--no-cache', 'gnupg']],
+    ['apt-get', ['install', '-y', '--no-install-recommends', 'gnupg']],
+  ]) {
+    try {
+      run(command, args)
+    } catch {
+      continue
+    }
+
+    if (available()) return
+  }
+
+  throw new Error('gpg is not installed and could not be added: add gnupg to the image of the job.')
+}
+
 /** Import the signing key and make Git sign the commits and the tags with it. */
 function configureSigning() {
   const signer = signerIdentity(process.env)
 
-  try {
-    run('gpg', ['--version'])
-  } catch {
-    run('apt-get', ['update'])
-    run('apt-get', ['install', '-y', '--no-install-recommends', 'gnupg'])
-  }
+  ensureGpg()
 
   run('gpg', ['--batch', '--import'], { input: signer.key, stdio: ['pipe', 'pipe', 'pipe'] })
   const fingerprint = run('gpg', ['--list-secret-keys', '--with-colons'])

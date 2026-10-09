@@ -11,6 +11,7 @@ import {
   nextVersion,
   planTag,
   runtimeChanged,
+  signerIdentity,
 } from '../../scripts/update-dependencies.mjs'
 
 describe('latestTag', () => {
@@ -159,5 +160,26 @@ describe('loadConfig', () => {
       cooldown: '3d',
       tag: { when: 'runtime', level: 'minor' },
     })
+  })
+})
+
+describe('signerIdentity', () => {
+  const env = {
+    GPG_PRIVATE_KEY_B64: Buffer.from('-----BEGIN PGP PRIVATE KEY BLOCK-----').toString('base64'),
+    RELEASE_SIGNER_NAME: 'Stanislas Poisson (autoupdate)',
+    RELEASE_SIGNER_EMAIL: 'contact@stanislas-poisson.fr',
+  }
+
+  it('reads the identity and decodes the key', () => {
+    expect(signerIdentity(env)).toEqual({
+      name: 'Stanislas Poisson (autoupdate)',
+      email: 'contact@stanislas-poisson.fr',
+      key: '-----BEGIN PGP PRIVATE KEY BLOCK-----',
+    })
+  })
+
+  it('refuses to go on without the key or the identity', () => {
+    expect(() => signerIdentity({ ...env, GPG_PRIVATE_KEY_B64: '' })).toThrow('GPG_PRIVATE_KEY_B64')
+    expect(() => signerIdentity({})).toThrow('RELEASE_SIGNER_NAME')
   })
 })

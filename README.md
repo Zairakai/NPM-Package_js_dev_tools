@@ -170,6 +170,27 @@ Available templates:
 
 ---
 
+## Automatic updates
+
+The pipeline template updates the dependencies of a project by itself, and this package starts the update of the projects that use it. The rules are in the handbook (`policies/dependency-management.md` and `policies/versioning.md`).
+
+- A weekly schedule with the variable `UPDATE_DEPENDENCIES=true`, or a pipeline started by the cascade, runs `deps:update`: it takes the **minor and patch** updates after a cooling period, opens a merge request into `develop` and merges it **when its pipeline succeeds**. Major versions are never applied.
+- `deps:release` brings `develop` into `main` after such an update, and `deps:tag` tags `main` when a published range (`dependencies`, `peerDependencies`) changed. A project that changed only its development dependencies is not tagged: its published archive is the same.
+- After the publication of a tag, `deps:cascade` waits for the version to be on the registry, then starts the update of the projects that have a `.dependency-update.json`.
+
+The exceptions of a project live in `.dependency-update.json` at its root (everything is optional):
+
+```json
+{
+  "reject": ["typescript", "vue-tsc"],
+  "cooldown": "3d",
+  "tag": { "when": "runtime", "level": "patch" },
+  "cascade": { "groups": ["zairakai/npm-packages"] }
+}
+```
+
+`tag.when` is `runtime` (default), `always` or `never`, and `tag.level` is `patch` (default) or `minor`. Only the projects that others depend on need a `cascade`. The group variable `GITLAB_TOKEN` is used to open the merge requests and to tag.
+
 ## Development
 
 ```bash

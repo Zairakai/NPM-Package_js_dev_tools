@@ -134,6 +134,8 @@ variables:
 secret_detection:
   stage: security
   rules:
+    - if: $UPDATE_DEPENDENCIES == "true"
+      when: never
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_MERGE_REQUEST_ID
     - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
 
@@ -144,6 +146,8 @@ js:tag-format:
   stage: security
   image: ${ALPINE_IMAGE}
   rules:
+    - if: $UPDATE_DEPENDENCIES == "true"
+      when: never
     - if: $CI_COMMIT_TAG
   script:
     - |
@@ -166,6 +170,10 @@ js:tag-format:
 js:install:
   <<: [*base_job, *cache_node_push]
   stage: install
+  rules:
+    - if: $UPDATE_DEPENDENCIES == "true"
+      when: never
+    - when: on_success
   image: ${NODE_IMAGE}
   script:
     - npm ci --cache .npm --prefer-offline
@@ -184,6 +192,10 @@ js:install:
 js:validate:markdownlint:
   <<: [*base_job, *cache_node]
   stage: validate
+  rules:
+    - if: $UPDATE_DEPENDENCIES == "true"
+      when: never
+    - when: on_success
   image: ${NODE_IMAGE}
   script:
     - bash "$JS_DEV_TOOLS_SCRIPTS/markdownlint.sh"
@@ -191,6 +203,10 @@ js:validate:markdownlint:
 js:validate:shellcheck:
   <<: *base_job
   stage: validate
+  rules:
+    - if: $UPDATE_DEPENDENCIES == "true"
+      when: never
+    - when: on_success
   image: ${SHELLCHECK_IMAGE}
   before_script:
     - apk add --no-cache bash
@@ -208,6 +224,10 @@ js:validate:shellcheck:
 js:quality:lint:
   <<: *job_node
   stage: quality
+  rules:
+    - if: $UPDATE_DEPENDENCIES == "true"
+      when: never
+    - when: on_success
   script:
     - bash "$JS_DEV_TOOLS_SCRIPTS/eslint.sh"
   artifacts:
@@ -221,18 +241,30 @@ js:quality:lint:
 js:quality:format:
   <<: *job_node
   stage: quality
+  rules:
+    - if: $UPDATE_DEPENDENCIES == "true"
+      when: never
+    - when: on_success
   script:
     - bash "$JS_DEV_TOOLS_SCRIPTS/prettier.sh"
 
 js:quality:stylelint:
   <<: *job_node
   stage: quality
+  rules:
+    - if: $UPDATE_DEPENDENCIES == "true"
+      when: never
+    - when: on_success
   script:
     - bash "$JS_DEV_TOOLS_SCRIPTS/stylelint.sh"
 
 js:quality:typecheck:
   <<: *job_node
   stage: quality
+  rules:
+    - if: $UPDATE_DEPENDENCIES == "true"
+      when: never
+    - when: on_success
   script:
     - |
       if [ -f tsconfig.json ] && [ -f node_modules/.bin/tsc ]; then
@@ -244,12 +276,20 @@ js:quality:typecheck:
 js:quality:knip:
   <<: *job_node
   stage: quality
+  rules:
+    - if: $UPDATE_DEPENDENCIES == "true"
+      when: never
+    - when: on_success
   script:
     - bash "$JS_DEV_TOOLS_SCRIPTS/knip.sh"
 
 js:quality:bats:
   <<: [*base_job, *cache_node]
   stage: quality
+  rules:
+    - if: $UPDATE_DEPENDENCIES == "true"
+      when: never
+    - when: on_success
   image: ${ALPINE_IMAGE}
   before_script:
     - apk add --no-cache bash bats git
@@ -265,6 +305,8 @@ js:quality:outdated:
   <<: *job_node
   stage: quality
   rules:
+    - if: $UPDATE_DEPENDENCIES == "true"
+      when: never
     - if: $CI_PIPELINE_SOURCE == "schedule"
   script:
     - bash "$JS_DEV_TOOLS_SCRIPTS/outdated.sh"
@@ -280,6 +322,10 @@ js:quality:outdated:
 js:test:
   <<: [*base_job, *cache_node]
   stage: test
+  rules:
+    - if: $UPDATE_DEPENDENCIES == "true"
+      when: never
+    - when: on_success
   image: ${NODE_TEST_IMAGE}
   script:
     - CI=true bash "$JS_DEV_TOOLS_SCRIPTS/test.sh"
@@ -314,6 +360,8 @@ js:build:
     expire_in: 1 week
     when: on_success
   rules:
+    - if: $UPDATE_DEPENDENCIES == "true"
+      when: never
     - if: $CI_COMMIT_TAG =~ $VERSION_TAG_REGEX
     - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_MERGE_REQUEST_ID
@@ -326,6 +374,8 @@ js:publish:
   stage: publish
   image: ${NODE_IMAGE}
   rules:
+    - if: $UPDATE_DEPENDENCIES == "true"
+      when: never
     - if: $CI_COMMIT_TAG =~ $VERSION_TAG_REGEX
   script:
     - |
@@ -356,6 +406,8 @@ js:release:
   stage: release
   image: ${RELEASE_CLI_IMAGE}
   rules:
+    - if: $UPDATE_DEPENDENCIES == "true"
+      when: never
     - if: $CI_COMMIT_TAG =~ $VERSION_TAG_REGEX
   before_script:
     - apk add --no-cache bash git jq
@@ -402,6 +454,7 @@ deps:update:
   script:
     - node --version
     - "[ -d node_modules ] || npm ci --no-audit --no-fund"
+    - '[ "${JS_DEV_TOOLS_SCRIPTS}" = "scripts" ] || npm install --no-save --no-audit --no-fund "@zairakai/js-dev-tools@latest"'
     - node "${JS_DEV_TOOLS_SCRIPTS}/update-dependencies.mjs" update
   rules:
     - if: $UPDATE_DEPENDENCIES == "true" && $CI_COMMIT_BRANCH == "develop"

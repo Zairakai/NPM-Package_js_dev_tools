@@ -174,6 +174,9 @@ function assertEnvironment() {
     if (!process.env[name])
       throw new Error(`${name} is not set: run this in GitLab CI, with the group variable GITLAB_TOKEN.`)
   }
+
+  // The runner clones the project with another user than the one of the job: Git refuses it otherwise.
+  run('git', ['config', '--global', '--add', 'safe.directory', process.cwd()])
 }
 
 function configureGit() {

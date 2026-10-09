@@ -111,6 +111,23 @@ export function formatChanges(rows) {
   return lines.join('\n')
 }
 
+/** The identity and the key used to sign, from the group variables. It fails when one is missing: no unsigned tag. */
+export function signerIdentity(env) {
+  const missing = ['GPG_PRIVATE_KEY_B64', 'RELEASE_SIGNER_NAME', 'RELEASE_SIGNER_EMAIL'].filter((name) => !env[name])
+
+  if (0 < missing.length) {
+    throw new Error(
+      `${missing.join(', ')} not set: the commits and the tags are signed, see the handbook (versioning).`
+    )
+  }
+
+  return {
+    name: env.RELEASE_SIGNER_NAME,
+    email: env.RELEASE_SIGNER_EMAIL,
+    key: Buffer.from(env.GPG_PRIVATE_KEY_B64, 'base64').toString('utf8'),
+  }
+}
+
 /** What `tag` has to do: the version to create, or null (and why). */
 export function planTag({ config, last, commits, before, after }) {
   if ('never' === config.tag.when) return { version: null, reason: 'the project is never tagged by the update' }
@@ -179,9 +196,28 @@ function assertEnvironment() {
   run('git', ['config', '--global', '--add', 'safe.directory', process.cwd()])
 }
 
-function configureGit() {
-  run('git', ['config', 'user.name', 'Stanislas Poisson (autoupdate)'])
-  run('git', ['config', 'user.email', 'contact@stanislas-poisson.fr'])
+/** Import the signing key and make Git sign the commits and the tags with it. */
+function configureSigning() {
+  const signer = signerIdentity(process.env)
+
+  try {
+    run('gpg', ['--version'])
+  } catch {
+    run('apt-get', ['update'])
+    run('apt-get', ['install', '-y', '--no-install-recommends', 'gnupg'])
+  }
+
+  run('gpg', ['--batch', '--import'], { input: signer.key, stdio: ['pipe', 'pipe', 'pipe'] })
+  const fingerprint = run('gpg', ['--list-secret-keys', '--with-colons'])
+    .split('\n')
+    .find((line) => line.startsWith('fpr'))
+    .split(':')[9]
+
+  run('git', ['config', 'user.name', signer.name])
+  run('git', ['config', 'user.email', signer.email])
+  run('git', ['config', 'user.signingkey', fingerprint])
+  run('git', ['config', 'commit.gpgsign', 'true'])
+  run('git', ['config', 'tag.gpgsign', 'true'])
 }
 
 function remoteUrl() {
@@ -244,7 +280,7 @@ async function update(config) {
     return
   }
 
-  configureGit()
+  configureSigning()
   const before = JSON.parse(readFileSync('package.json', 'utf8'))
   const branch = `${BRANCH_PREFIX}-${new Date().toISOString().slice(0, 10).replaceAll('-', '')}`
   run('git', ['switch', '-c', branch])
@@ -333,16 +369,11 @@ async function tag(config) {
     return
   }
 
-  const result = await api('POST', `/projects/${projectId()}/repository/tags`, {
-    tag_name: plan.version,
-    ref: process.env.CI_COMMIT_SHA,
-    message: plan.version,
-  })
+  configureSigning()
+  run('git', ['tag', '-s', plan.version, '-m', plan.version, process.env.CI_COMMIT_SHA])
+  run('git', ['push', remoteUrl(), `refs/tags/${plan.version}`])
 
-  if (!result.ok)
-    throw new Error(`The tag ${plan.version} could not be created: ${secret(JSON.stringify(result.data))}`)
-
-  log(`Tag ${plan.version} created (last tag ${last}): ${plan.reason}. Its pipeline publishes the package.`)
+  log(`Tag ${plan.version} signed and pushed (last tag ${last}): ${plan.reason}. Its pipeline publishes the package.`)
 }
 
 async function cascade(config) {

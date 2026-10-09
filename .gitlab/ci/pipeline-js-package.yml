@@ -385,3 +385,60 @@ js:release:
     paths:
       - release_notes.md
     expire_in: 1 year
+
+# ================================
+# AUTOMATIC UPDATES
+# ================================
+# See the handbook, policies/dependency-management.md. The exceptions of a project live in .dependency-update.json.
+# The group variable GITLAB_TOKEN (protected, so these jobs run on main, develop and the tags) opens the merge requests,
+# merges them and creates the tags. The pipeline of each merge request is the gate: nothing is tested by these jobs.
+
+# A weekly schedule (or a pipeline started by the cascade) with UPDATE_DEPENDENCIES=true prepares the update.
+deps:update:
+  <<: *base_job
+  stage: install
+  image: ${NODE_IMAGE}
+  needs: []
+  script:
+    - node --version
+    - "[ -d node_modules ] || npm ci --no-audit --no-fund"
+    - node "${JS_DEV_TOOLS_SCRIPTS}/update-dependencies.mjs" update
+  rules:
+    - if: $UPDATE_DEPENDENCIES == "true" && $CI_COMMIT_BRANCH == "develop"
+
+# After the merge of an update into develop, bring develop into main.
+deps:release:
+  <<: *base_job
+  stage: release
+  image: ${NODE_IMAGE}
+  script:
+    - "[ -d node_modules ] || npm ci --no-audit --no-fund"
+    - node "${JS_DEV_TOOLS_SCRIPTS}/update-dependencies.mjs" release
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop" && $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_MESSAGE =~ /chore\/update-dependencies/
+
+# After the merge of an update into main, tag it when a published range changed. The tag starts the publication.
+deps:tag:
+  <<: *base_job
+  stage: release
+  image: ${NODE_IMAGE}
+  variables:
+    GIT_DEPTH: 0
+  script:
+    - "[ -d node_modules ] || npm ci --no-audit --no-fund"
+    - node "${JS_DEV_TOOLS_SCRIPTS}/update-dependencies.mjs" tag
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
+
+# After the publication, start the update of the projects that use this package (only if the project has a cascade).
+deps:cascade:
+  <<: *base_job
+  stage: release
+  image: ${NODE_IMAGE}
+  needs:
+    - job: js:publish
+  script:
+    - "[ -d node_modules ] || npm ci --no-audit --no-fund"
+    - node "${JS_DEV_TOOLS_SCRIPTS}/update-dependencies.mjs" cascade
+  rules:
+    - if: $CI_COMMIT_TAG =~ $VERSION_TAG_REGEX

@@ -39,6 +39,17 @@ const DEFAULTS = {
 const RUNTIME_SECTIONS = ['dependencies', 'peerDependencies', 'optionalDependencies']
 const ALL_SECTIONS = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']
 
+/** The manifest of each ecosystem, with the sections that are published and all of them. */
+const ECOSYSTEMS = {
+  npm: { file: 'package.json', runtime: RUNTIME_SECTIONS, all: ALL_SECTIONS },
+  composer: { file: 'composer.json', runtime: ['require'], all: ['require', 'require-dev'] },
+}
+
+/** The ecosystem of the project: a package.json at its root, otherwise a composer.json. */
+export function detectEcosystem(exists = existsSync) {
+  return exists('package.json') ? 'npm' : 'composer'
+}
+
 /** The configuration of the project, completed with the defaults. */
 export function loadConfig(path = CONFIG_FILE) {
   const user = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : {}
@@ -78,15 +89,15 @@ function sorted(section) {
 }
 
 /** True when a range that is published (dependencies, peerDependencies, optionalDependencies) is not the same. */
-export function runtimeChanged(before, after) {
-  return RUNTIME_SECTIONS.some((section) => sorted(before?.[section]) !== sorted(after?.[section]))
+export function runtimeChanged(before, after, sections = RUNTIME_SECTIONS) {
+  return sections.some((section) => sorted(before?.[section]) !== sorted(after?.[section]))
 }
 
 /** The dependencies whose range changed, with the section, the old range and the new one. */
-export function diffDependencies(before, after) {
+export function diffDependencies(before, after, sections = ALL_SECTIONS) {
   const rows = []
 
-  for (const section of ALL_SECTIONS) {
+  for (const section of sections) {
     const old = before?.[section] ?? {}
     const current = after?.[section] ?? {}
 
@@ -129,12 +140,12 @@ export function signerIdentity(env) {
 }
 
 /** What `tag` has to do: the version to create, or null (and why). */
-export function planTag({ config, last, commits, before, after }) {
+export function planTag({ config, last, commits, before, after, sections = RUNTIME_SECTIONS }) {
   if ('never' === config.tag.when) return { version: null, reason: 'the project is never tagged by the update' }
   if (!last) return { version: null, reason: 'there is no tag yet' }
   if (0 === commits.length) return { version: null, reason: 'no update since the last tag' }
 
-  if ('runtime' === config.tag.when && !runtimeChanged(before, after)) {
+  if ('runtime' === config.tag.when && !runtimeChanged(before, after, sections)) {
     return { version: null, reason: 'only the development dependencies changed: the published archive is the same' }
   }
 
@@ -305,18 +316,22 @@ async function update(config) {
   }
 
   configureSigning()
-  const before = JSON.parse(readFileSync('package.json', 'utf8'))
+  const ecosystem = ECOSYSTEMS[detectEcosystem()]
+  const before = JSON.parse(run('git', ['show', `HEAD:${ecosystem.file}`]))
   const branch = `${BRANCH_PREFIX}-${new Date().toISOString().slice(0, 10).replaceAll('-', '')}`
   run('git', ['switch', '-c', branch])
 
-  // The new versions wait for the cooling period. The packages of the group are trusted: no waiting for them.
-  const reject = 0 < config.reject.length ? ['--reject', config.reject.join(',')] : []
-  ncu(['--cooldown', config.cooldown, ...reject])
-  ncu(['--filter', '@zairakai/*', ...reject])
-  run('npm', ['install', '--no-audit', '--no-fund'])
+  // A PHP project was prepared by the job before this one, in its own image: only npm is updated here.
+  if ('package.json' === ecosystem.file) {
+    // The new versions wait for the cooling period. The packages of the group are trusted: no waiting for them.
+    const reject = 0 < config.reject.length ? ['--reject', config.reject.join(',')] : []
+    ncu(['--cooldown', config.cooldown, ...reject])
+    ncu(['--filter', '@zairakai/*', ...reject])
+    run('npm', ['install', '--no-audit', '--no-fund'])
+  }
 
-  const after = JSON.parse(readFileSync('package.json', 'utf8'))
-  const rows = diffDependencies(before, after)
+  const after = JSON.parse(readFileSync(ecosystem.file, 'utf8'))
+  const rows = diffDependencies(before, after, ecosystem.all)
 
   if ('' === run('git', ['status', '--porcelain'])) {
     log('Everything is up to date.')
@@ -383,10 +398,11 @@ async function tag(config) {
         .split('\n')
         .filter(Boolean)
     : []
-  const before = last ? JSON.parse(run('git', ['show', `${last}:package.json`])) : null
-  const after = JSON.parse(readFileSync('package.json', 'utf8'))
+  const ecosystem = ECOSYSTEMS[detectEcosystem()]
+  const before = last ? JSON.parse(run('git', ['show', `${last}:${ecosystem.file}`])) : null
+  const after = JSON.parse(readFileSync(ecosystem.file, 'utf8'))
 
-  const plan = planTag({ config, last, commits, before, after })
+  const plan = planTag({ config, last, commits, before, after, sections: ecosystem.runtime })
 
   if (!plan.version) {
     log(`No tag: ${plan.reason}.`)
@@ -400,6 +416,21 @@ async function tag(config) {
   log(`Tag ${plan.version} signed and pushed (last tag ${last}): ${plan.reason}. Its pipeline publishes the package.`)
 }
 
+/** True when the registry of the ecosystem (npm or Packagist) lists the version. */
+async function isAvailable(ecosystem, name, version) {
+  if ('npm' === ecosystem) {
+    return run('npm', ['view', `${name}@${version}`, 'version', '--prefer-online']) === version
+  }
+
+  const response = await fetch(`https://repo.packagist.org/p2/${name}.json`)
+
+  if (!response.ok) return false
+
+  const data = await response.json()
+
+  return (data.packages?.[name] ?? []).some((release) => release.version === version)
+}
+
 async function cascade(config) {
   assertEnvironment()
 
@@ -408,7 +439,8 @@ async function cascade(config) {
     return
   }
 
-  const name = JSON.parse(readFileSync('package.json', 'utf8')).name
+  const ecosystem = detectEcosystem()
+  const name = JSON.parse(readFileSync(ECOSYSTEMS[ecosystem].file, 'utf8')).name
   const version = process.env.CI_COMMIT_TAG
 
   if (!version) throw new Error('The cascade runs on the pipeline of a tag.')
@@ -418,7 +450,7 @@ async function cascade(config) {
 
   for (let attempt = 0; 60 > attempt && !available; attempt++) {
     try {
-      available = run('npm', ['view', `${name}@${version}`, 'version', '--prefer-online']) === version
+      available = await isAvailable(ecosystem, name, version)
     } catch {
       available = false
     }

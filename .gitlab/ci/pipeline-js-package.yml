@@ -77,6 +77,9 @@ variables:
   NODE_VERSION: "24"
   NODE_IMAGE: "zairakai/node:latest-dev"
   NODE_TEST_IMAGE: "zairakai/node:latest-test"
+  # The jobs of the automatic updates sign with gpg: the image has it since 1.3.0. It is an exact version, published on
+  # Docker Hub like our other images: the runner pulls it, whatever the old image it keeps locally.
+  NODE_UPDATE_IMAGE: "zairakai/node:1.3.0-dev"
   SHELLCHECK_IMAGE: "koalaman/shellcheck-alpine:v0.10.0"
   RELEASE_CLI_IMAGE: "registry.gitlab.com/gitlab-org/release-cli:v0.18.0"
   ALPINE_IMAGE: "alpine:3.18"
@@ -449,7 +452,7 @@ js:release:
 deps:update:
   <<: *base_job
   stage: install
-  image: ${NODE_IMAGE}
+  image: ${NODE_UPDATE_IMAGE}
   needs: []
   script:
     - node --version
@@ -474,7 +477,7 @@ deps:release:
 deps:tag:
   <<: *base_job
   stage: release
-  image: ${NODE_IMAGE}
+  image: ${NODE_UPDATE_IMAGE}
   variables:
     GIT_DEPTH: 0
   script:

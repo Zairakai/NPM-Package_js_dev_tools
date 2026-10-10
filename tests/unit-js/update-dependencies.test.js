@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import {
+  detectEcosystem,
   diffDependencies,
   formatChanges,
   latestTag,
@@ -181,5 +182,45 @@ describe('signerIdentity', () => {
   it('refuses to go on without the key or the identity', () => {
     expect(() => signerIdentity({ ...env, GPG_PRIVATE_KEY_B64: '' })).toThrow('GPG_PRIVATE_KEY_B64')
     expect(() => signerIdentity({})).toThrow('RELEASE_SIGNER_NAME')
+  })
+})
+
+describe('the PHP ecosystem', () => {
+  it('detects the ecosystem from the manifest at the root', () => {
+    expect(detectEcosystem(() => true)).toBe('npm')
+    expect(detectEcosystem(() => false)).toBe('composer')
+  })
+
+  it('looks at the sections that are published in composer.json', () => {
+    const before = { require: { 'laravel/framework': '^12.0' }, 'require-dev': { pint: '^1.0' } }
+
+    expect(runtimeChanged(before, { ...before, 'require-dev': { pint: '^2.0' } }, ['require'])).toBe(false)
+    expect(runtimeChanged(before, { ...before, require: { 'laravel/framework': '^12.0 || ^13.0' } }, ['require'])).toBe(
+      true
+    )
+  })
+
+  it('lists the changes of the sections it is given', () => {
+    const rows = diffDependencies({ 'require-dev': { pint: '^1.0' } }, { 'require-dev': { pint: '^1.1' } }, [
+      'require',
+      'require-dev',
+    ])
+
+    expect(rows).toEqual([{ section: 'require-dev', name: 'pint', from: '^1.0', to: '^1.1' }])
+  })
+
+  it('does not tag a PHP project that only changed its development requirements', () => {
+    const before = { require: { php: '^8.4' }, 'require-dev': { pint: '^1.0' } }
+    const after = { require: { php: '^8.4' }, 'require-dev': { pint: '^1.1' } }
+    const plan = planTag({
+      config: loadConfig('/missing'),
+      last: '1.0.0',
+      commits: ['chore(deps): update the dependencies'],
+      before,
+      after,
+      sections: ['require'],
+    })
+
+    expect(plan.version).toBeNull()
   })
 })

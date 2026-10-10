@@ -178,6 +178,8 @@ The pipeline template updates the dependencies of a project by itself, and this 
 - `deps:release` brings `develop` into `main` after such an update, and `deps:tag` tags `main` when a published range (`dependencies`, `peerDependencies`) changed. A project that changed only its development dependencies is not tagged: its published archive is the same.
 - After the publication of a tag, `deps:cascade` waits for the version to be on the registry, then starts the update of the projects that have a `.dependency-update.json`.
 
+The same script serves the PHP projects (`composer.json`): a job in the PHP image runs `composer update`, then this script commits, signs and opens the merge request, and `deps:tag` looks at `require` only. The jobs that sign (`deps:update`, `deps:tag`) run on an exact version of the node image (`NODE_UPDATE_IMAGE`, published on Docker Hub), because they need `gpg` and the image of the runner is not updated by itself.
+
 The exceptions of a project live in `.dependency-update.json` at its root (everything is optional):
 
 ```json

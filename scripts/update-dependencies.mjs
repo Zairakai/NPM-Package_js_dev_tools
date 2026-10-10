@@ -319,7 +319,7 @@ async function update(config) {
   const ecosystem = ECOSYSTEMS[detectEcosystem()]
   const before = JSON.parse(run('git', ['show', `HEAD:${ecosystem.file}`]))
   const branch = `${BRANCH_PREFIX}-${new Date().toISOString().slice(0, 10).replaceAll('-', '')}`
-  run('git', ['switch', '-c', branch])
+  run('git', ['switch', '-C', branch])
 
   // A PHP project was prepared by the job before this one, in its own image: only npm is updated here.
   if ('package.json' === ecosystem.file) {

@@ -254,6 +254,12 @@ setup_file() {
     local target="$2"
     local name="$3"
 
+    # In js-dev-tools itself the source and the target are the same file: removing the target would delete the source
+    if [[ "$source" -ef "$target" ]]; then
+        track_skipped "$name"
+        return 0
+    fi
+
     if [[ "$CI_MODE" == "true" ]] || [[ "$FORCE_OVERWRITE" == "true" ]]; then
         if [[ -f "$target" ]] && [[ ! -L "$target" ]] && [[ "$CI_MODE" != "true" ]]; then
             if backup_file "$target" 2>/dev/null; then

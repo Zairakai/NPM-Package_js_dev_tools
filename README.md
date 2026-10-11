@@ -27,6 +27,7 @@ One unified toolkit to set up JavaScript/TypeScript quality tooling. Context-awa
 | **Concentrated Configs** | Centralized, opinionated configurations for all your tools. Avoid configuration drift across projects. |
 | **Unified Workflow** | One set of `make` commands to rule them all. Whether it's a small library or a large application, the quality gate remains the same. |
 | **Auto-Syncing CI** | Automatically updates GitLab CI ref tags in your `.gitlab-ci.yml` when you update the package. Keep your pipelines current without manual effort. |
+| **Shared base** | The ESLint, Prettier, Stylelint, Vitest, TypeScript and markdownlint rules live in [`@stanislas-poisson/js-dev-tools`](https://github.com/Stanislas-Poisson/js-dev-tools), which this package requires. The paths of this package (`@zairakai/js-dev-tools/eslint`, `/prettier`, ...) stay the same. |
 | **Zero Friction** | Automated setup script handles the heavy lifting on install. |
 
 ---

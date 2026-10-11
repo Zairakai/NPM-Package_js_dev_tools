@@ -1,9 +1,8 @@
 /**
  * Knip configuration for @zairakai/js-dev-tools
  *
- * This package ships bundled configs for consumer projects.
- * Many dependencies are referenced as strings (prettier plugins, stylelint configs)
- * rather than ES imports — knip cannot trace those automatically.
+ * This package re-exports the configs of @stanislas-poisson/js-dev-tools, whose dependencies are referenced as strings
+ * by the tools; knip cannot trace those automatically, so the base package is the one that lists them.
  */
 
 export default {
@@ -16,19 +15,6 @@ export default {
   exclude: ['optionalPeerDependencies'],
 
   ignoreDependencies: [
-    // Prettier plugins — referenced as strings in config/prettier.config.js
-    '@prettier/plugin-php',
-    'prettier-plugin-blade',
-    'prettier-plugin-organize-imports',
-
-    // Stylelint configs/plugins — referenced as strings in config/stylelint.config.js
-    'stylelint-config-html',
-    'stylelint-config-recommended-vue',
-    'stylelint-config-standard',
-    'stylelint-config-standard-scss',
-    'stylelint-order',
-    'stylelint-scss',
-
     // Coverage provider — referenced as string in config/vitest.config.js (provider: 'v8')
     '@vitest/coverage-v8',
 

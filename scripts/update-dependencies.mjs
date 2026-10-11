@@ -333,13 +333,16 @@ async function update(config) {
   const after = JSON.parse(readFileSync(ecosystem.file, 'utf8'))
   const rows = diffDependencies(before, after, ecosystem.all)
 
-  if ('' === run('git', ['status', '--porcelain'])) {
+  // Only the manifest and the lock file: the postinstall of the tools can rewrite other files of the project in CI.
+  const files = [ecosystem.file, ...['package-lock.json', 'composer.lock'].filter((file) => existsSync(file))]
+
+  if ('' === run('git', ['status', '--porcelain', '--', ...files])) {
     log('Everything is up to date.')
     return
   }
 
   const table = formatChanges(rows)
-  run('git', ['add', '-A'])
+  run('git', ['add', ...files])
   run('git', [
     'commit',
     '-m',

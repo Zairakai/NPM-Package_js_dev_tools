@@ -393,8 +393,9 @@ async function tag(config) {
 
   run('git', ['fetch', '--tags', '--quiet'])
   const last = latestTag(run('git', ['tag', '--list']).split('\n'))
+  // git reads a basic regular expression: the parentheses of the subject are literal.
   const commits = last
-    ? run('git', ['log', `${last}..HEAD`, '--format=%s', `--grep=^${COMMIT_SUBJECT.replace(/[()]/g, '\\$&')}`])
+    ? run('git', ['log', `${last}..HEAD`, '--format=%s', `--grep=^${COMMIT_SUBJECT}`])
         .split('\n')
         .filter(Boolean)
     : []

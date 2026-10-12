@@ -52,6 +52,23 @@ teardown() {
 }
 
 # ============================================================================
+# Running inside js-dev-tools itself (source and target are the same file)
+# ============================================================================
+
+@test "setup-project.sh in CI mode keeps .editorconfig when run inside js-dev-tools itself" {
+    local self_dir="${TEST_TEMP_DIR}/self"
+    mkdir -p "$self_dir/node_modules"
+    cp -r "${PROJECT_ROOT}/scripts" "${PROJECT_ROOT}/config" "${PROJECT_ROOT}/stubs" "$self_dir/"
+    cp "${PROJECT_ROOT}/.editorconfig" "${PROJECT_ROOT}/package.json" "$self_dir/"
+    cd "$self_dir"
+
+    CI=true run bash "scripts/setup-project.sh"
+
+    [ "$status" -eq 0 ]
+    assert_file_exists "${self_dir}/.editorconfig"
+}
+
+# ============================================================================
 # Script structure checks
 # ============================================================================
 

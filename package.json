@@ -91,16 +91,16 @@
     "@stanislas-poisson/js-dev-tools": "^1.0.0",
     "eslint": "^10.12.0",
     "markdownlint-cli2": "^0.23.3",
-    "prettier": "^3.9.9",
+    "prettier": "^3.9.10",
     "stylelint": "^17.16.0"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^5.0.3",
+    "@vitest/coverage-v8": "^5.0.5",
     "knip": "^6.41.0",
-    "sort-package-json": "^4.0.0",
+    "sort-package-json": "^4.1.0",
     "typescript": "^6.0.3",
-    "vitest": "^5.0.3",
-    "zod": "^4.6.5"
+    "vitest": "^5.0.5",
+    "zod": "^4.6.7"
   },
   "peerDependencies": {
     "eslint": "^10.0.0",

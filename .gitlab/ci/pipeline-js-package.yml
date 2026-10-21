@@ -393,6 +393,9 @@ js:publish:
   id_tokens:
     NPM_ID_TOKEN:
       aud: "npm:registry.npmjs.org"
+    # Lets npm sign the provenance: the package page shows it was built on GitLab from this project.
+    SIGSTORE_ID_TOKEN:
+      aud: sigstore
   rules:
     - if: $UPDATE_DEPENDENCIES == "true"
       when: never
@@ -406,7 +409,7 @@ js:publish:
       fi
       echo "Publishing ${NPM_PACKAGE_NAME}@${CI_COMMIT_TAG} to npm (tag ${npm_tag})..."
       npm version "${CI_COMMIT_TAG}" --no-git-tag-version --allow-same-version
-      npm publish --access public --tag "${npm_tag}"
+      npm publish --provenance --access public --tag "${npm_tag}"
   environment:
     name: production
     url: https://www.npmjs.com/package/${NPM_PACKAGE_NAME}

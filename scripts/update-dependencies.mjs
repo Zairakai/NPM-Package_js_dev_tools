@@ -26,6 +26,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 
 const CONFIG_FILE = '.dependency-update.json'
+const PIPELINE_FILE = '.gitlab-ci.yml'
 const COMMIT_SUBJECT = 'chore(deps): update the dependencies'
 const BRANCH_PREFIX = 'chore/update-dependencies'
 
@@ -150,6 +151,16 @@ export function planTag({ config, last, commits, before, after, sections = RUNTI
   }
 
   return { version: nextVersion(last, config.tag.level), reason: 'a published range changed' }
+}
+
+/**
+ * True when a diff changes one `ref:` line and nothing else. The install of the tools moves the `ref:` of the shared
+ * pipeline to the installed version: that is the only change of the pipeline file an update may commit.
+ */
+export function isRefOnlyChange(diff) {
+  const changed = diff.split('\n').filter((line) => /^[+-]/.test(line) && !/^(\+\+\+|---)/.test(line))
+
+  return 2 === changed.length && changed.every((line) => /^[+-]\s*ref:\s*\S+\s*$/.test(line))
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -335,6 +346,11 @@ async function update(config) {
 
   // Only the manifest and the lock file: the postinstall of the tools can rewrite other files of the project in CI.
   const files = [ecosystem.file, ...['package-lock.json', 'composer.lock'].filter((file) => existsSync(file))]
+
+  // The one exception: the `ref:` of the shared pipeline follows the installed version of the tools.
+  if (existsSync(PIPELINE_FILE) && isRefOnlyChange(run('git', ['diff', '-U0', '--', PIPELINE_FILE]))) {
+    files.push(PIPELINE_FILE)
+  }
 
   if ('' === run('git', ['status', '--porcelain', '--', ...files])) {
     log('Everything is up to date.')

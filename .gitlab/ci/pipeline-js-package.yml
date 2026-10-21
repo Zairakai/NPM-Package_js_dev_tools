@@ -61,6 +61,15 @@ stages:
   - release
 
 # ================================
+# RUNNERS
+# ================================
+# Every job runs on the self-hosted runner of the group, whatever the shared runners enabled on the project.
+# Only js:publish leaves it: npm trusted publishing does not accept a self-hosted runner.
+default:
+  tags:
+    - zairakai-ci
+
+# ================================
 # DEFAULT VARIABLES
 # ================================
 variables:
@@ -376,18 +385,19 @@ js:publish:
   <<: [*base_job, *cache_node]
   stage: publish
   image: ${NODE_IMAGE}
+  # Trusted publishing: npm trusts this project and this job, and the OIDC token below authenticates the publication.
+  # No npm token is stored anywhere. npm accepts only the shared runners of GitLab.com (not a self-hosted runner),
+  # so this job is the only one that uses them. The tag is the one of GitLab, it cannot be renamed.
+  tags:
+    - saas-linux-small-amd64
+  id_tokens:
+    NPM_ID_TOKEN:
+      aud: "npm:registry.npmjs.org"
   rules:
     - if: $UPDATE_DEPENDENCIES == "true"
       when: never
     - if: $CI_COMMIT_TAG =~ $VERSION_TAG_REGEX
   script:
-    - |
-      if [[ -z "${NPM_TOKEN:-}" ]]; then
-        echo "ERROR: NPM_TOKEN is not set or empty"
-        echo "Go to: GitLab → Settings → CI/CD → Variables → add NPM_TOKEN (type: Variable, protected, masked)"
-        exit 1
-      fi
-    - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > "${CI_PROJECT_DIR}/.npmrc"
     - |
       # A pre-release (2.3.0-rc.1) goes to the npm tag "next", so it never becomes "latest"
       npm_tag="latest"

@@ -7,6 +7,7 @@ import {
   detectEcosystem,
   diffDependencies,
   formatChanges,
+  isRefOnlyChange,
   latestTag,
   loadConfig,
   nextVersion,
@@ -222,5 +223,27 @@ describe('the PHP ecosystem', () => {
     })
 
     expect(plan.version).toBeNull()
+  })
+})
+
+describe('isRefOnlyChange', () => {
+  const header = ['--- a/.gitlab-ci.yml', '+++ b/.gitlab-ci.yml', '@@ -6 +6 @@']
+
+  it('accepts the move of the ref of the shared pipeline', () => {
+    expect(isRefOnlyChange([...header, '-    ref: 3.7.0', '+    ref: 3.7.1'].join('\n'))).toBe(true)
+  })
+
+  it('refuses a change of another line', () => {
+    const diff = [...header, '-    file: ".gitlab/a.yml"', '+    file: ".gitlab/b.yml"'].join('\n')
+
+    expect(isRefOnlyChange(diff)).toBe(false)
+  })
+
+  it('refuses a ref with another line changed next to it', () => {
+    expect(isRefOnlyChange([...header, '-    ref: 3.7.0', '+    ref: 3.7.1', '+  extra: true'].join('\n'))).toBe(false)
+  })
+
+  it('has nothing to commit when the file is the same', () => {
+    expect(isRefOnlyChange('')).toBe(false)
   })
 })

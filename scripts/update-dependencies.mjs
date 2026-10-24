@@ -611,11 +611,15 @@ async function issueExists(title, token) {
 }
 
 async function createIssue(title, description, token) {
-  const user = await api('GET', '/user', undefined, token)
+  // The assignee is given by the variable ISSUE_ASSIGNEE_ID; without it, the user of the token.
+  let assignee = Number(process.env.ISSUE_ASSIGNEE_ID) || 0
+
+  if (0 === assignee) assignee = (await api('GET', '/user', undefined, token)).data?.id ?? 0
+
   const issue = await api(
     'POST',
     `/projects/${projectId()}/issues`,
-    { title, description, labels: ISSUE_LABELS, assignee_ids: [user.data?.id].filter(Boolean) },
+    { title, description, labels: ISSUE_LABELS, assignee_ids: 0 < assignee ? [assignee] : [] },
     token
   )
 
@@ -645,8 +649,8 @@ async function closeResolved(titles, token) {
       { body: `The audit of ${process.env.CI_PIPELINE_URL} no longer finds this advisory.` },
       token
     )
-    await api('PUT', path, { state_event: 'close' }, token)
-    log(`Issue closed: ${issue.title}`)
+    const closed = await api('PUT', path, { state_event: 'close' }, token)
+    log(closed.ok ? `Issue closed: ${issue.title}` : `Issue not closed (${closed.status}): ${issue.title}`)
   }
 }
 

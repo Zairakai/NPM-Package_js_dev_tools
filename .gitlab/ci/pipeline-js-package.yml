@@ -473,7 +473,23 @@ deps:update:
     - '[ "${JS_DEV_TOOLS_SCRIPTS}" = "scripts" ] || npm install --no-save --no-audit --no-fund "@zairakai/js-dev-tools@latest"'
     - node "${JS_DEV_TOOLS_SCRIPTS}/update-dependencies.mjs" update
   rules:
-    - if: $UPDATE_DEPENDENCIES == "true" && $CI_COMMIT_BRANCH == "develop"
+    - if: $UPDATE_DEPENDENCIES == "true" && $AUDIT_DEPENDENCIES != "true" && $CI_COMMIT_BRANCH == "develop"
+
+# A daily schedule with UPDATE_DEPENDENCIES=true and AUDIT_DEPENDENCIES=true looks for security advisories: one issue per
+# advisory (ntfy alert, closed when it is gone) and, with the group variable AUTO_FIX=true, an update started to fix it.
+# The token FRESHNESS_TOKEN of the group (else GITLAB_TOKEN) opens the issues and starts the update; NTFY_URL is the alert.
+deps:audit:
+  <<: *base_job
+  stage: install
+  image: ${NODE_UPDATE_IMAGE}
+  needs: []
+  script:
+    - node --version
+    - "[ -d node_modules ] || npm ci --no-audit --no-fund"
+    - '[ "${JS_DEV_TOOLS_SCRIPTS}" = "scripts" ] || npm install --no-save --no-audit --no-fund "@zairakai/js-dev-tools@latest"'
+    - node "${JS_DEV_TOOLS_SCRIPTS}/update-dependencies.mjs" audit
+  rules:
+    - if: $UPDATE_DEPENDENCIES == "true" && $AUDIT_DEPENDENCIES == "true" && $CI_COMMIT_BRANCH == "develop"
 
 # After the merge of an update into develop, bring develop into main.
 deps:release:

@@ -1,5 +1,5 @@
 {
-  "reject": ["typescript", "@stanislas-poisson/js-dev-tools"],
+  "reject": ["typescript"],
   "cooldown": "3d",
   "tag": { "when": "runtime", "level": "minor" },
   "cascade": { "groups": ["zairakai/npm-packages"] }

@@ -1,11 +1,6 @@
 {
   "reject": ["typescript"],
   "cooldown": "3d",
-  "tag": {
-    "when": "runtime",
-    "level": "minor"
-  },
-  "cascade": {
-    "groups": ["zairakai/npm-packages"]
-  }
+  "tag": { "when": "runtime", "level": "minor" },
+  "cascade": { "groups": ["zairakai/npm-packages"] }
 }

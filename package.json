@@ -88,15 +88,15 @@
     "validate": "make quality"
   },
   "dependencies": {
-    "@stanislas-poisson/js-dev-tools": "^1.0.0",
+    "@stanislas-poisson/js-dev-tools": "~1.0.0",
     "eslint": "^10.13.0",
-    "markdownlint-cli2": "^0.23.3",
+    "markdownlint-cli2": "^0.24.0",
     "prettier": "^3.9.10",
     "stylelint": "^17.16.0"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^5.0.5",
-    "knip": "^6.42.0",
+    "knip": "^6.43.0",
     "sort-package-json": "^4.1.0",
     "typescript": "^6.0.3",
     "vitest": "^5.0.5",

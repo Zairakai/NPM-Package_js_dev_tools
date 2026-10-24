@@ -4,13 +4,17 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import {
+  advisoryIssueBody,
+  advisoryTitle,
   detectEcosystem,
   diffDependencies,
   formatChanges,
   isRefOnlyChange,
+  isUrgent,
   latestTag,
   loadConfig,
   nextVersion,
+  parseNpmAudit,
   planTag,
   runtimeChanged,
   signerIdentity,
@@ -245,5 +249,85 @@ describe('isRefOnlyChange', () => {
 
   it('has nothing to commit when the file is the same', () => {
     expect(isRefOnlyChange('')).toBe(false)
+  })
+})
+
+describe('parseNpmAudit', () => {
+  const report = {
+    vulnerabilities: {
+      lodash: {
+        name: 'lodash',
+        severity: 'high',
+        via: [
+          {
+            source: 1106913,
+            name: 'lodash',
+            title: 'Prototype Pollution',
+            url: 'https://github.com/advisories/GHSA-p6mc-m468-83gw',
+            severity: 'high',
+            range: '<4.17.21',
+          },
+        ],
+      },
+      'consumer-of-lodash': { name: 'consumer-of-lodash', severity: 'high', via: ['lodash'] },
+    },
+  }
+
+  it('reads one row per advisory, on the package that has it', () => {
+    expect(parseNpmAudit(report)).toEqual([
+      {
+        id: 'GHSA-p6mc-m468-83gw',
+        package: 'lodash',
+        title: 'Prototype Pollution',
+        link: 'https://github.com/advisories/GHSA-p6mc-m468-83gw',
+        severity: 'high',
+        range: '<4.17.21',
+      },
+    ])
+  })
+
+  it('counts an advisory once when several packages lead to it', () => {
+    const twice = { vulnerabilities: { a: report.vulnerabilities.lodash, b: report.vulnerabilities.lodash } }
+
+    expect(parseNpmAudit(twice)).toHaveLength(1)
+  })
+
+  it('falls back on the number of the advisory when it has no URL', () => {
+    const noUrl = {
+      vulnerabilities: { x: { name: 'x', via: [{ source: 42, name: 'x', title: 'T', severity: 'low' }] } },
+    }
+
+    expect(parseNpmAudit(noUrl)[0].id).toBe('42')
+  })
+
+  it('has nothing for a clean report', () => {
+    expect(parseNpmAudit({ vulnerabilities: {} })).toEqual([])
+    expect(parseNpmAudit({})).toEqual([])
+  })
+})
+
+describe('advisories', () => {
+  it('titles the issue with a stable key', () => {
+    expect(advisoryTitle({ package: 'lodash', id: 'GHSA-1' })).toBe('Security advisory: lodash (GHSA-1)')
+  })
+
+  it('fixes without waiting only the serious or unknown severities', () => {
+    expect(['critical', 'high', ''].every(isUrgent)).toBe(true)
+    expect(['moderate', 'low'].some(isUrgent)).toBe(false)
+  })
+
+  it('describes the advisory and the automatic fix in the issue', () => {
+    const row = {
+      id: 'GHSA-1',
+      package: 'lodash',
+      title: 'Prototype Pollution',
+      link: 'https://x.test/1',
+      severity: 'high',
+      range: '<4.17.21',
+    }
+
+    expect(advisoryIssueBody(row, 'https://ci.test/1', true)).toContain('Automatic fix: started')
+    expect(advisoryIssueBody({ ...row, severity: 'low' }, 'https://ci.test/1', true)).toContain('Automatic fix: off')
+    expect(advisoryIssueBody(row, 'https://ci.test/1', false)).toContain('`lodash`')
   })
 })

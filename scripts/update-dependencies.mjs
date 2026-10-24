@@ -2,13 +2,15 @@
 /**
  * Automatic updates of the dependencies of a package of the zairakai group.
  *
- * Usage: node update-dependencies.mjs update | release | tag | cascade
+ * Usage: node update-dependencies.mjs update | release | tag | cascade | audit
  *
  * - update: prepare a branch with the minor and patch updates, open a merge request into develop and merge it when its
  *   pipeline succeeds. The pipeline of the merge request is the gate: nothing is tested here.
  * - release: open the merge request of develop into main after an update, and merge it when its pipeline succeeds.
  * - tag: tag main when a runtime range changed since the last tag (see `tag` in .dependency-update.json).
  * - cascade: after the publication of this package, start the update of the projects that use it.
+ * - audit: look for security advisories, open one issue per advisory and, with AUTO_FIX=true, start an update to fix them
+ *   (UPDATE_URGENT=true: the new versions are taken without waiting, and `npm audit fix` is run).
  *
  * It reads `.dependency-update.json` at the root of the project (everything is optional):
  *
@@ -19,7 +21,8 @@
  *     "cascade": { "groups": ["zairakai/npm-packages"] }   projects to start (opt-in: they have the same file)
  *   }
  *
- * Environment: GITLAB_TOKEN (group variable), and the variables of GitLab CI.
+ * Environment: GITLAB_TOKEN (group variable), and the variables of GitLab CI. The audit also reads FRESHNESS_TOKEN (else
+ * GITLAB_TOKEN), NTFY_URL and AUTO_FIX.
  */
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
@@ -29,6 +32,8 @@ const CONFIG_FILE = '.dependency-update.json'
 const PIPELINE_FILE = '.gitlab-ci.yml'
 const COMMIT_SUBJECT = 'chore(deps): update the dependencies'
 const BRANCH_PREFIX = 'chore/update-dependencies'
+const ADVISORY_TITLE_PREFIX = 'Security advisory: '
+const ISSUE_LABELS = 'Kind::Security,Area::Security,Automated'
 
 const DEFAULTS = {
   reject: ['typescript'],
@@ -163,14 +168,75 @@ export function isRefOnlyChange(diff) {
   return 2 === changed.length && changed.every((line) => /^[+-]\s*ref:\s*\S+\s*$/.test(line))
 }
 
+/** The id of an advisory: the last part of its URL (GHSA-xxxx-xxxx-xxxx), else the number npm gives it. */
+function advisoryId(via) {
+  const fromUrl = 'string' === typeof via.url ? via.url.split('/').filter(Boolean).pop() : ''
+
+  return fromUrl || String(via.source ?? '')
+}
+
+/** The advisories of the JSON report of `npm audit`, one row per advisory and package, sorted. */
+export function parseNpmAudit(report) {
+  const rows = new Map()
+
+  for (const entry of Object.values(report?.vulnerabilities ?? {})) {
+    for (const via of entry.via ?? []) {
+      // A string only names another vulnerable package: the advisory itself is on that one.
+      if ('object' !== typeof via || null === via) continue
+
+      const row = {
+        id: advisoryId(via),
+        package: via.name ?? entry.name,
+        title: via.title ?? '',
+        link: via.url ?? '',
+        severity: String(via.severity ?? entry.severity ?? '').toLowerCase(),
+        range: via.range ?? '',
+      }
+
+      rows.set(`${row.package}|${row.id}`, row)
+    }
+  }
+
+  return [...rows.values()].sort((a, b) => `${a.package}|${a.id}`.localeCompare(`${b.package}|${b.id}`))
+}
+
+/** The title of the issue of an advisory. It is also the key that keeps the issue from being opened twice. */
+export function advisoryTitle(row) {
+  return `${ADVISORY_TITLE_PREFIX}${row.package} (${row.id})`
+}
+
+/** Whether an advisory is fixed without waiting for the next weekly update. An unknown severity counts as urgent. */
+export function isUrgent(severity) {
+  return ['', 'high', 'critical'].includes(severity)
+}
+
+/** The body of the issue opened for an advisory. */
+export function advisoryIssueBody(row, pipelineUrl, autoFix) {
+  return [
+    `${row.title}.`,
+    '',
+    `- Package: \`${row.package}\``,
+    `- Affected versions: \`${row.range || 'unknown'}\``,
+    `- Severity: ${row.severity || 'not given'}`,
+    `- Advisory: ${row.link || row.id}`,
+    `- Automatic fix: ${autoFix && isUrgent(row.severity) ? 'started (an update of the dependencies, taken without waiting)' : 'off for this advisory: update by hand'}`,
+    '',
+    `Pipeline: ${pipelineUrl}`,
+    '',
+    'The issue is closed by the next audit that no longer finds this advisory.',
+  ].join('\n')
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 
 const log = (message) => console.info(message)
 
 function secret(text) {
-  const token = process.env.GITLAB_TOKEN
+  return ['GITLAB_TOKEN', 'FRESHNESS_TOKEN'].reduce((masked, name) => {
+    const token = process.env[name]
 
-  return token ? String(text).split(token).join('***') : String(text)
+    return token ? masked.split(token).join('***') : masked
+  }, String(text))
 }
 
 function run(command, args = [], options = {}) {
@@ -181,10 +247,25 @@ function run(command, args = [], options = {}) {
   }
 }
 
-async function api(method, path, body) {
+/** The output of a command that exits with 1 when it finds something (npm audit): only a missing output is a failure. */
+function capture(command, args = []) {
+  try {
+    return execFileSync(command, args, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      maxBuffer: 64 * 1024 * 1024,
+    })
+  } catch (error) {
+    if (error.stdout) return error.stdout
+
+    throw new Error(secret(`${command} ${args.join(' ')} failed: ${error.stderr || error.message}`), { cause: error })
+  }
+}
+
+async function api(method, path, body, token = process.env.GITLAB_TOKEN) {
   const response = await fetch(`${process.env.CI_API_V4_URL ?? 'https://gitlab.com/api/v4'}${path}`, {
     method,
-    headers: { 'PRIVATE-TOKEN': process.env.GITLAB_TOKEN ?? '', 'Content-Type': 'application/json' },
+    headers: { 'PRIVATE-TOKEN': token ?? '', 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
   const text = await response.text()
@@ -336,9 +417,19 @@ async function update(config) {
   if ('package.json' === ecosystem.file) {
     // The new versions wait for the cooling period. The packages of the group are trusted: no waiting for them.
     const reject = 0 < config.reject.length ? ['--reject', config.reject.join(',')] : []
-    ncu(['--cooldown', config.cooldown, ...reject])
+    // An update started by the audit (UPDATE_URGENT=true) fixes an advisory: the fix is not made to wait.
+    const urgent = 'true' === process.env.UPDATE_URGENT
+    ncu([...(urgent ? [] : ['--cooldown', config.cooldown]), ...reject])
     ncu(['--filter', '@zairakai/*', ...reject])
     run('npm', ['install', '--no-audit', '--no-fund'])
+
+    if (urgent) {
+      try {
+        run('npm', ['audit', 'fix', '--no-fund'])
+      } catch (error) {
+        log(`npm audit fix did not apply: ${secret(error.message).split('\n')[0]}`)
+      }
+    }
   }
 
   const after = JSON.parse(readFileSync(ecosystem.file, 'utf8'))
@@ -510,11 +601,129 @@ async function cascade(config) {
   }
 }
 
-const modes = { update, release, tag, cascade }
+// ---------------------------------------------------------------------------------------------------------------------
+
+async function issueExists(title, token) {
+  const query = new URLSearchParams({ state: 'opened', search: title, in: 'title' })
+  const result = await api('GET', `/projects/${projectId()}/issues?${query}`, undefined, token)
+
+  return (Array.isArray(result.data) ? result.data : []).some((issue) => issue.title === title)
+}
+
+async function createIssue(title, description, token) {
+  const user = await api('GET', '/user', undefined, token)
+  const issue = await api(
+    'POST',
+    `/projects/${projectId()}/issues`,
+    { title, description, labels: ISSUE_LABELS, assignee_ids: [user.data?.id].filter(Boolean) },
+    token
+  )
+
+  if (!issue.ok) throw new Error(`The issue could not be created: ${secret(JSON.stringify(issue.data))}`)
+
+  return issue.data.web_url
+}
+
+/** Close the open issues of the audit whose advisory is not found any more. */
+async function closeResolved(titles, token) {
+  const query = new URLSearchParams({
+    state: 'opened',
+    labels: 'Automated',
+    search: ADVISORY_TITLE_PREFIX,
+    in: 'title',
+    per_page: '100',
+  })
+  const result = await api('GET', `/projects/${projectId()}/issues?${query}`, undefined, token)
+
+  for (const issue of Array.isArray(result.data) ? result.data : []) {
+    if (!issue.title.startsWith(ADVISORY_TITLE_PREFIX) || titles.includes(issue.title)) continue
+
+    const path = `/projects/${projectId()}/issues/${issue.iid}`
+    await api(
+      'POST',
+      `${path}/notes`,
+      { body: `The audit of ${process.env.CI_PIPELINE_URL} no longer finds this advisory.` },
+      token
+    )
+    await api('PUT', path, { state_event: 'close' }, token)
+    log(`Issue closed: ${issue.title}`)
+  }
+}
+
+/** A push notification through ntfy, when NTFY_URL is set. A failure never stops the audit. */
+async function notify(title, message) {
+  if (!process.env.NTFY_URL) return
+
+  try {
+    await fetch(process.env.NTFY_URL, {
+      method: 'POST',
+      headers: { Title: title },
+      body: message,
+      signal: AbortSignal.timeout(15000),
+    })
+  } catch {
+    log('The ntfy alert could not be sent.')
+  }
+}
+
+async function audit() {
+  assertEnvironment()
+
+  const found = parseNpmAudit(JSON.parse(capture('npm', ['audit', '--json'])))
+  const auto = 'true' === process.env.AUTO_FIX
+  const token = process.env.FRESHNESS_TOKEN || process.env.GITLAB_TOKEN
+  const titles = []
+  let urgent = false
+
+  log(`${found.length} security advisory(ies) found.`)
+
+  for (const row of found) {
+    const title = advisoryTitle(row)
+    titles.push(title)
+    urgent ||= isUrgent(row.severity)
+
+    if (await issueExists(title, token)) {
+      log(`Issue already open: ${title}`)
+      continue
+    }
+
+    const url = await createIssue(title, advisoryIssueBody(row, process.env.CI_PIPELINE_URL ?? '', auto), token)
+    log(`Issue created: ${url}`)
+    await notify(title, `${process.env.CI_PROJECT_PATH}: ${url}`)
+  }
+
+  await closeResolved(titles, token)
+
+  if (!auto || !urgent) {
+    log(auto ? 'Nothing urgent: the weekly update takes the rest.' : 'AUTO_FIX is off: update by hand.')
+    return
+  }
+
+  if ((await openMergeRequests()).some((request) => request.source_branch.startsWith(BRANCH_PREFIX))) {
+    log('An update is already open: nothing to start.')
+    return
+  }
+
+  const started = await api(
+    'POST',
+    `/projects/${projectId()}/pipeline`,
+    {
+      ref: 'develop',
+      variables: [
+        { key: 'UPDATE_DEPENDENCIES', value: 'true' },
+        { key: 'UPDATE_URGENT', value: 'true' },
+      ],
+    },
+    token
+  )
+  log(started.ok ? 'Update started.' : `The update could not be started (${started.status}).`)
+}
+
+const modes = { update, release, tag, cascade, audit }
 
 async function main(mode) {
   if (!modes[mode]) {
-    console.error('Usage: node update-dependencies.mjs update | release | tag | cascade')
+    console.error('Usage: node update-dependencies.mjs update | release | tag | cascade | audit')
     process.exitCode = 1
     return
   }

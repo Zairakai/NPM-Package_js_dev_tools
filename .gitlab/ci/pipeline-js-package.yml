@@ -455,6 +455,41 @@ js:release:
     expire_in: 1 year
 
 # ================================
+# DOCUMENTATION
+# ================================
+# The documentation site (GitLab Pages): every released version, each built from its own tag, and next, with a version
+# selector. See docs/scripts/publish.sh in the project. It comes with the release: a tag is always a release of main, and
+# nothing is published if the publication failed. The dependencies are the ones installed once by js:install.
+# A project without docs/scripts/publish.sh has no site.
+pages:
+  <<: [*base_job, *cache_node]
+  stage: release
+  image: ${NODE_IMAGE}
+  needs:
+    - job: js:install
+    - job: js:publish
+  variables:
+    GIT_DEPTH: 0
+  before_script:
+    - node --version
+  script:
+    - bash docs/scripts/publish.sh
+  # The next jobs of the runner must not find (and lint) the docs dependencies or what they generate.
+  after_script:
+    - rm -rf docs/node_modules docs/.vitepress/dist docs/.vitepress/cache
+    - git clean -fdXq docs || true
+  artifacts:
+    paths:
+      - public
+    expire_in: 1 week
+  rules:
+    - if: $UPDATE_DEPENDENCIES == "true"
+      when: never
+    - if: $CI_COMMIT_TAG =~ $VERSION_TAG_REGEX
+      exists:
+        - docs/scripts/publish.sh
+
+# ================================
 # AUTOMATIC UPDATES
 # ================================
 # See the handbook, policies/dependency-management.md. The exceptions of a project live in .dependency-update.json.

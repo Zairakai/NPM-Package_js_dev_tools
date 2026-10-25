@@ -45,6 +45,7 @@ const POLICY_URL = 'https://gitlab.com/zairakai/dependency-policy/-/raw/main'
 const POLICY_FILES = { npm: 'node.json', composer: 'php.json' }
 const POLICY_BRANCH_PREFIX = 'chore/unblock'
 const GROUP_SCOPE = '@zairakai/'
+const TRUSTED_SCOPES = [GROUP_SCOPE, '@stanislas-poisson/']
 
 const DEFAULTS = {
   reject: [],
@@ -249,6 +250,19 @@ export function isLifted(entry, ranges) {
       'string' === typeof range && null !== semver.validRange(range) && semver.satisfies(entry.unblock.version, range)
     )
   })
+}
+
+/**
+ * The packages of a lock file that the refresh may update: the ones of the group are left out, because they are trusted
+ * and not made to wait, and the cooling date would refuse a version that was just published.
+ */
+export function refreshableNames(lock, scopes = TRUSTED_SCOPES) {
+  const names = Object.keys(lock?.packages ?? {})
+    .filter((path) => '' !== path)
+    .map((path) => path.slice(path.lastIndexOf('node_modules/') + 'node_modules/'.length))
+    .filter((name) => !scopes.some((scope) => name.startsWith(scope)))
+
+  return [...new Set(names)].sort()
 }
 
 /** The age, as a date, from which a version is taken: now minus the cooling period ("3d", "12h"). */
@@ -594,12 +608,13 @@ async function update(config) {
     // The lock file is refreshed inside the ranges, so that a fix of a package that this project only inherits arrives
     // (overrides of a dependency do not apply here). The new versions wait for the cooling period, except for a fix.
     const before = cooldownDate(config.cooldown)
-    run('npm', [
-      'update',
-      '--no-audit',
-      '--no-fund',
-      ...(urgent || null === before ? [] : [`--before=${before.toISOString()}`]),
-    ])
+    const names = refreshableNames(JSON.parse(readFileSync('package-lock.json', 'utf8')))
+
+    if (urgent || null === before) {
+      run('npm', ['update', '--no-audit', '--no-fund'])
+    } else if (0 < names.length) {
+      run('npm', ['update', '--no-audit', '--no-fund', `--before=${before.toISOString()}`, ...names])
+    }
 
     if (urgent) {
       try {

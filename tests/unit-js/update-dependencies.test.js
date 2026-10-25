@@ -23,6 +23,7 @@ import {
   nextVersion,
   parseNpmAudit,
   planTag,
+  refreshableNames,
   rejectedPackages,
   runtimeChanged,
   signerIdentity,
@@ -472,5 +473,26 @@ describe('isInherited', () => {
   it('is false for a package that nothing in the group brings', () => {
     expect(isInherited(lock, 'vitest')).toBe(false)
     expect(isInherited({}, 'katex')).toBe(false)
+  })
+})
+
+describe('refreshableNames', () => {
+  it('lists every package once, without the trusted scopes', () => {
+    const lock = {
+      packages: {
+        '': {},
+        'node_modules/zod': {},
+        'node_modules/a/node_modules/zod': {},
+        'node_modules/@zairakai/js-dev-tools': {},
+        'node_modules/@stanislas-poisson/js-dev-tools': {},
+        'node_modules/@vitest/spy': {},
+      },
+    }
+
+    expect(refreshableNames(lock)).toEqual(['@vitest/spy', 'zod'])
+  })
+
+  it('has nothing for an empty lock', () => {
+    expect(refreshableNames({})).toEqual([])
   })
 })

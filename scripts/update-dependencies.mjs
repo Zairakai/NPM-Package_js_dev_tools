@@ -610,10 +610,16 @@ async function update(config) {
     const before = cooldownDate(config.cooldown)
     const names = refreshableNames(JSON.parse(readFileSync('package-lock.json', 'utf8')))
 
-    if (urgent || null === before) {
-      run('npm', ['update', '--no-audit', '--no-fund'])
-    } else if (0 < names.length) {
-      run('npm', ['update', '--no-audit', '--no-fund', `--before=${before.toISOString()}`, ...names])
+    // The refresh is a bonus: when npm cannot respect the cooling date (a range that starts at a version younger than
+    // the period, after an urgent update), it waits for the next run and the update goes on.
+    try {
+      if (urgent || null === before) {
+        run('npm', ['update', '--no-audit', '--no-fund'])
+      } else if (0 < names.length) {
+        run('npm', ['update', '--no-audit', '--no-fund', `--before=${before.toISOString()}`, ...names])
+      }
+    } catch (error) {
+      log(`The lock file is not refreshed this time: ${secret(error.message).split('\n')[0]}`)
     }
 
     if (urgent) {

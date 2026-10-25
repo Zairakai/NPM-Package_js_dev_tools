@@ -6,9 +6,11 @@ import { describe, expect, it } from 'vitest'
 import {
   advisoryIssueBody,
   advisoryTitle,
+  auditAlert,
   detectEcosystem,
   diffDependencies,
   formatChanges,
+  isNotable,
   isRefOnlyChange,
   isUrgent,
   latestTag,
@@ -314,6 +316,27 @@ describe('advisories', () => {
   it('fixes without waiting only the serious or unknown severities', () => {
     expect(['critical', 'high', ''].every(isUrgent)).toBe(true)
     expect(['moderate', 'low'].some(isUrgent)).toBe(false)
+  })
+
+  it('notifies from moderate up, and for an unknown severity', () => {
+    expect(['critical', 'high', 'moderate', ''].every(isNotable)).toBe(true)
+    expect(isNotable('low')).toBe(false)
+  })
+
+  it('sends one message for the notable advisories and counts the low ones', () => {
+    const opened = [
+      { row: { package: 'zod', id: 'GHSA-1', severity: 'high' }, url: 'https://x.test/1' },
+      { row: { package: 'katex', id: 'GHSA-2', severity: 'low' }, url: 'https://x.test/2' },
+    ]
+    const alert = auditAlert(opened, 'zairakai/npm-packages/x')
+
+    expect(alert.title).toBe('Security advisories: 1 new in zairakai/npm-packages/x')
+    expect(alert.message).toBe('zod (GHSA-1, high): https://x.test/1\n1 more of a low severity, issue only.')
+  })
+
+  it('sends nothing when only low advisories were opened', () => {
+    expect(auditAlert([{ row: { package: 'katex', id: 'GHSA-2', severity: 'low' }, url: 'u' }], 'p')).toBeNull()
+    expect(auditAlert([], 'p')).toBeNull()
   })
 
   it('describes the advisory and the automatic fix in the issue', () => {

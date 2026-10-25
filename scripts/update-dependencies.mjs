@@ -2,7 +2,7 @@
 /**
  * Automatic updates of the dependencies of a package of the zairakai group.
  *
- * Usage: node update-dependencies.mjs update | release | tag | cascade | audit
+ * Usage: node update-dependencies.mjs update | release | tag | cascade | audit | policy | policy-validate
  *
  * - update: prepare a branch with the minor and patch updates, open a merge request into develop and merge it when its
  *   pipeline succeeds. The pipeline of the merge request is the gate: nothing is tested here.
@@ -11,11 +11,16 @@
  * - cascade: after the publication of this package, start the update of the projects that use it.
  * - audit: look for security advisories, open one issue per advisory and, with AUTO_FIX=true, start an update to fix them
  *   (UPDATE_URGENT=true: the new versions are taken without waiting, and `npm audit fix` is run).
+ * - policy: in the repository dependency-policy, lift the entries whose condition is met (merge request).
+ * - policy-validate: in the repository dependency-policy, check the shape of the files.
+ *
+ * The packages listed in the dependency policy (https://gitlab.com/zairakai/dependency-policy) are never updated, whatever
+ * the project. DEPENDENCY_POLICY_URL replaces the address of the files.
  *
  * It reads `.dependency-update.json` at the root of the project (everything is optional):
  *
  *   {
- *     "reject": ["typescript"],                 packages that are never updated
+ *     "reject": ["some-package"],               packages of this project that are never updated
  *     "cooldown": "3d",                         minimum age of a new version
  *     "tag": { "when": "runtime", "level": "patch" },   when: runtime | always | never, level: patch | minor
  *     "cascade": { "groups": ["zairakai/npm-packages"] }   projects to start (opt-in: they have the same file)
@@ -25,18 +30,24 @@
  * GITLAB_TOKEN), NTFY_URL and AUTO_FIX.
  */
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
+
+import semver from 'semver'
 
 const CONFIG_FILE = '.dependency-update.json'
 const PIPELINE_FILE = '.gitlab-ci.yml'
 const COMMIT_SUBJECT = 'chore(deps): update the dependencies'
 const BRANCH_PREFIX = 'chore/update-dependencies'
 const ADVISORY_TITLE_PREFIX = 'Security advisory: '
-const ISSUE_LABELS = 'Kind::Security,Area::Security,Automated'
+const ISSUE_LABELS = ['Kind::Security', 'Area::Security', 'Automated']
+const POLICY_URL = 'https://gitlab.com/zairakai/dependency-policy/-/raw/main'
+const POLICY_FILES = { npm: 'node.json', composer: 'php.json' }
+const POLICY_BRANCH_PREFIX = 'chore/unblock'
+const GROUP_SCOPE = '@zairakai/'
 
 const DEFAULTS = {
-  reject: ['typescript'],
+  reject: [],
   cooldown: '3d',
   tag: { when: 'runtime', level: 'patch' },
   cascade: null,
@@ -168,6 +179,135 @@ export function isRefOnlyChange(diff) {
   return 2 === changed.length && changed.every((line) => /^[+-]\s*ref:\s*\S+\s*$/.test(line))
 }
 
+/** The problems of a policy document, as a list of sentences (empty when it is valid). */
+export function validatePolicy(doc) {
+  if (!Array.isArray(doc?.entries)) return ['"entries" must be a list.']
+
+  const errors = []
+  const seen = new Set()
+
+  doc.entries.forEach((entry, index) => {
+    const where = `entries[${index}]`
+    const name = 'string' === typeof entry?.package ? entry.package : ''
+
+    if ('' === name) errors.push(`${where}: "package" is missing.`)
+    else if (seen.has(name)) errors.push(`${where}: "${name}" is listed twice.`)
+    seen.add(name)
+
+    if ('string' !== typeof entry?.reason || '' === entry.reason.trim()) errors.push(`${where}: "reason" is missing.`)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(entry?.since ?? '')) errors.push(`${where}: "since" must be a date (YYYY-MM-DD).`)
+
+    if (undefined !== entry?.unblock) {
+      const { version, peers } = entry.unblock ?? {}
+
+      if (null === semver.valid(version)) errors.push(`${where}: "unblock.version" must be a version (X.Y.Z).`)
+      if (!Array.isArray(peers) || 0 === peers.length || !peers.every((peer) => 'string' === typeof peer && peer)) {
+        errors.push(`${where}: "unblock.peers" must be a list of packages.`)
+      }
+    }
+  })
+
+  return errors
+}
+
+/** The policy of an ecosystem, read from the repository dependency-policy. Anything wrong stops the update. */
+export async function fetchPolicy(
+  ecosystem,
+  fetchImpl = fetch,
+  base = process.env.DEPENDENCY_POLICY_URL || POLICY_URL
+) {
+  const url = `${base.replace(/\/$/, '')}/${POLICY_FILES[ecosystem]}`
+  let doc
+
+  try {
+    const response = await fetchImpl(url, { signal: AbortSignal.timeout(20000) })
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    doc = await response.json()
+  } catch (error) {
+    throw new Error(`The dependency policy could not be read (${url}): ${error.message}`, { cause: error })
+  }
+
+  const errors = validatePolicy(doc)
+  if (0 < errors.length) throw new Error(`The dependency policy is not valid (${url}): ${errors.join(' ')}`)
+
+  return doc
+}
+
+/** The packages that the project never updates: its own `reject` and the packages of the policy. */
+export function rejectedPackages(config, policy) {
+  return [...new Set([...config.reject, ...policy.entries.map((entry) => entry.package)])]
+}
+
+/** Whether the condition of an entry is met: every package of `peers` accepts the version in its peer range. */
+export function isLifted(entry, ranges) {
+  if (!entry.unblock) return false
+
+  return entry.unblock.peers.every((peer) => {
+    const range = ranges[peer]
+
+    return (
+      'string' === typeof range && null !== semver.validRange(range) && semver.satisfies(entry.unblock.version, range)
+    )
+  })
+}
+
+/** The age, as a date, from which a version is taken: now minus the cooling period ("3d", "12h"). */
+export function cooldownDate(cooldown, now = new Date()) {
+  const match = /^(\d+)\s*([dhm])$/.exec(cooldown)
+  if (!match) return null
+
+  const unit = { d: 86_400_000, h: 3_600_000, m: 60_000 }[match[2]]
+
+  return new Date(now.getTime() - Number(match[1]) * unit)
+}
+
+/**
+ * Whether a package is only reached through the packages of the group (@zairakai/*), in a lock file of version 2 or 3.
+ * The graph is read by name, which is enough here: a package that is also reached through a dependency of the project
+ * itself is not inherited.
+ */
+export function isInherited(lock, name, scope = GROUP_SCOPE) {
+  const packages = lock?.packages ?? {}
+  const edges = new Map()
+
+  for (const [path, node] of Object.entries(packages)) {
+    if ('' === path) continue
+
+    const key = path.slice(path.lastIndexOf('node_modules/') + 'node_modules/'.length)
+    const next = edges.get(key) ?? new Set()
+
+    for (const section of ['dependencies', 'optionalDependencies', 'peerDependencies']) {
+      Object.keys(node[section] ?? {}).forEach((dependency) => next.add(dependency))
+    }
+    edges.set(key, next)
+  }
+
+  const root = packages['']
+  const direct = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'].flatMap((section) =>
+    Object.keys(root?.[section] ?? {})
+  )
+  const reaches = (starts) => {
+    const seen = new Set(starts)
+    const queue = [...starts]
+
+    while (0 < queue.length) {
+      for (const next of edges.get(queue.shift()) ?? []) {
+        if (!seen.has(next)) {
+          seen.add(next)
+          queue.push(next)
+        }
+      }
+    }
+
+    return seen
+  }
+
+  const ours = reaches(direct.filter((dependency) => !dependency.startsWith(scope)))
+  const theirs = reaches(direct.filter((dependency) => dependency.startsWith(scope)))
+
+  return theirs.has(name) && !ours.has(name)
+}
+
 /** The id of an advisory: the last part of its URL (GHSA-xxxx-xxxx-xxxx), else the number npm gives it. */
 function advisoryId(via) {
   const fromUrl = 'string' === typeof via.url ? via.url.split('/').filter(Boolean).pop() : ''
@@ -208,6 +348,33 @@ export function advisoryTitle(row) {
 /** Whether an advisory is fixed without waiting for the next weekly update. An unknown severity counts as urgent. */
 export function isUrgent(severity) {
   return ['', 'high', 'critical'].includes(severity)
+}
+
+/** Whether an advisory is worth a push notification: moderate and above. An unknown severity counts as notable. */
+export function isNotable(severity) {
+  return ['', 'moderate', 'high', 'critical'].includes(severity)
+}
+
+/**
+ * The one notification of an audit, or null when nothing notable was opened. The advisories of a low severity only
+ * get their issue: they are counted, not listed.
+ */
+export function auditAlert(opened, project) {
+  const notable = opened.filter(({ row }) => isNotable(row.severity))
+  if (0 === notable.length) return null
+
+  const silent = opened.length - notable.length
+  const lines = notable.map(({ row, url }) => `${row.package} (${row.id}, ${row.severity || 'unknown'}): ${url}`)
+  if (0 < silent) lines.push(`${silent} more of a low severity, issue only.`)
+
+  return { title: `Security advisories: ${notable.length} new in ${project}`, message: lines.join('\n') }
+}
+
+/** The labels of the issue of an advisory: the kind and the area, the priority from the severity, and Status::Ready. */
+export function advisoryLabels(row) {
+  const priority = { critical: 'Priority::Critical', high: 'Priority::High' }[row.severity] ?? 'Priority::Low'
+
+  return [...ISSUE_LABELS, priority, 'Status::Ready'].join(',')
 }
 
 /** The body of the issue opened for an advisory. */
@@ -416,12 +583,23 @@ async function update(config) {
   // A PHP project was prepared by the job before this one, in its own image: only npm is updated here.
   if ('package.json' === ecosystem.file) {
     // The new versions wait for the cooling period. The packages of the group are trusted: no waiting for them.
-    const reject = 0 < config.reject.length ? ['--reject', config.reject.join(',')] : []
+    const rejected = rejectedPackages(config, await readPolicy('npm'))
+    const reject = 0 < rejected.length ? ['--reject', rejected.join(',')] : []
     // An update started by the audit (UPDATE_URGENT=true) fixes an advisory: the fix is not made to wait.
     const urgent = 'true' === process.env.UPDATE_URGENT
     ncu([...(urgent ? [] : ['--cooldown', config.cooldown]), ...reject])
     ncu(['--filter', '@zairakai/*', ...reject])
     run('npm', ['install', '--no-audit', '--no-fund'])
+
+    // The lock file is refreshed inside the ranges, so that a fix of a package that this project only inherits arrives
+    // (overrides of a dependency do not apply here). The new versions wait for the cooling period, except for a fix.
+    const before = cooldownDate(config.cooldown)
+    run('npm', [
+      'update',
+      '--no-audit',
+      '--no-fund',
+      ...(urgent || null === before ? [] : [`--before=${before.toISOString()}`]),
+    ])
 
     if (urgent) {
       try {
@@ -474,8 +652,22 @@ async function update(config) {
   await mergeWhenGreen(request.data.iid)
 }
 
+/** Close the issues whose advisory is gone from the merged tree. It never stops a release. */
+async function closeObsolete() {
+  try {
+    const found = parseNpmAudit(JSON.parse(capture('npm', ['audit', '--json'])))
+
+    await closeResolved(found.map(advisoryTitle), process.env.FRESHNESS_TOKEN || process.env.GITLAB_TOKEN)
+  } catch (error) {
+    log(`The obsolete issues could not be checked: ${secret(error.message).split('\n')[0]}`)
+  }
+}
+
 async function release() {
   assertEnvironment()
+
+  // The update that was just merged into develop may fix advisories: their issues have no reason to stay open.
+  await closeObsolete()
 
   const existing = await openMergeRequests('&source_branch=develop&target_branch=main')
 
@@ -610,7 +802,7 @@ async function issueExists(title, token) {
   return (Array.isArray(result.data) ? result.data : []).some((issue) => issue.title === title)
 }
 
-async function createIssue(title, description, token) {
+async function createIssue(title, description, labels, token) {
   // The assignee is given by the variable ISSUE_ASSIGNEE_ID; without it, the user of the token.
   let assignee = Number(process.env.ISSUE_ASSIGNEE_ID) || 0
 
@@ -619,7 +811,7 @@ async function createIssue(title, description, token) {
   const issue = await api(
     'POST',
     `/projects/${projectId()}/issues`,
-    { title, description, labels: ISSUE_LABELS, assignee_ids: 0 < assignee ? [assignee] : [] },
+    { title, description, labels, assignee_ids: 0 < assignee ? [assignee] : [] },
     token
   )
 
@@ -670,13 +862,29 @@ async function notify(title, message) {
   }
 }
 
+/** The policy of the ecosystem. When it cannot be read, the update stops (with an alert) instead of going blind. */
+async function readPolicy(ecosystem) {
+  try {
+    const policy = await fetchPolicy(ecosystem)
+    log(`Dependency policy: ${policy.entries.map((entry) => entry.package).join(', ') || 'nothing is held back'}.`)
+
+    return policy
+  } catch (error) {
+    await notify('Dependency policy unreachable', `${process.env.CI_PROJECT_PATH}: ${secret(error.message)}`)
+    throw error
+  }
+}
+
+/** Open one issue per advisory that does not have one, and close the issues whose advisory is gone. */
 async function audit() {
   assertEnvironment()
 
   const found = parseNpmAudit(JSON.parse(capture('npm', ['audit', '--json'])))
+  const lock = existsSync('package-lock.json') ? JSON.parse(readFileSync('package-lock.json', 'utf8')) : null
   const auto = 'true' === process.env.AUTO_FIX
   const token = process.env.FRESHNESS_TOKEN || process.env.GITLAB_TOKEN
   const titles = []
+  const opened = []
   let urgent = false
 
   log(`${found.length} security advisory(ies) found.`)
@@ -691,10 +899,22 @@ async function audit() {
       continue
     }
 
-    const url = await createIssue(title, advisoryIssueBody(row, process.env.CI_PIPELINE_URL ?? '', auto), token)
+    // Inherited from a package of the group: the issue is in the package that brings it, and the update of this project
+    // takes the fix when there is one.
+    if (isInherited(lock, row.package)) {
+      log(`Inherited from the group, followed in the package that brings it: ${title}`)
+      continue
+    }
+
+    const body = advisoryIssueBody(row, process.env.CI_PIPELINE_URL ?? '', auto)
+    const url = await createIssue(title, body, advisoryLabels(row), token)
     log(`Issue created: ${url}`)
-    await notify(title, `${process.env.CI_PROJECT_PATH}: ${url}`)
+    opened.push({ row, url })
   }
+
+  // One message per audit, whatever the number of new advisories.
+  const alert = auditAlert(opened, process.env.CI_PROJECT_PATH)
+  if (alert) await notify(alert.title, alert.message)
 
   await closeResolved(titles, token)
 
@@ -723,11 +943,101 @@ async function audit() {
   log(started.ok ? 'Update started.' : `The update could not be started (${started.status}).`)
 }
 
-const modes = { update, release, tag, cascade, audit }
+/** The peer range of `name` in the latest release of `peer`, or null. */
+function peerRange(peer, name) {
+  try {
+    return JSON.parse(run('npm', ['view', peer, 'peerDependencies', '--json']) || '{}')?.[name] ?? null
+  } catch {
+    return null
+  }
+}
+
+/** In the repository dependency-policy: check the shape of the files. */
+async function policyValidate() {
+  let failed = false
+
+  for (const file of Object.values(POLICY_FILES)) {
+    if (!existsSync(file)) continue
+
+    let errors
+    try {
+      errors = validatePolicy(JSON.parse(readFileSync(file, 'utf8')))
+    } catch (error) {
+      errors = [`not valid JSON (${error.message}).`]
+    }
+
+    for (const message of errors) console.error(`${file}: ${message}`)
+    failed ||= 0 < errors.length
+  }
+
+  if (failed) throw new Error('The dependency policy is not valid.')
+  log('The dependency policy is valid.')
+}
+
+/** In the repository dependency-policy: lift the entries whose condition is met, with a merge request into main. */
+async function policyWatch() {
+  assertEnvironment()
+
+  const file = POLICY_FILES.npm
+  const doc = JSON.parse(readFileSync(file, 'utf8'))
+  const errors = validatePolicy(doc)
+  if (0 < errors.length) throw new Error(`${file} is not valid: ${errors.join(' ')}`)
+
+  const lifted = doc.entries.filter((entry) => {
+    if (!entry.unblock) return false
+
+    const ranges = Object.fromEntries(entry.unblock.peers.map((peer) => [peer, peerRange(peer, entry.package)]))
+
+    return isLifted(entry, ranges)
+  })
+
+  if (0 === lifted.length) {
+    log('No entry can be lifted.')
+    return
+  }
+
+  if ((await openMergeRequests()).some((request) => request.source_branch.startsWith(POLICY_BRANCH_PREFIX))) {
+    log('A merge request that lifts an entry is already open.')
+    return
+  }
+
+  const names = lifted.map((entry) => entry.package).join(', ')
+  const branch = `${POLICY_BRANCH_PREFIX}-${new Date().toISOString().slice(0, 10).replaceAll('-', '')}`
+  const subject = `chore(policy): unblock ${names}`
+
+  configureSigning()
+  run('git', ['switch', '-C', branch])
+  writeFileSync(
+    file,
+    `${JSON.stringify({ ...doc, entries: doc.entries.filter((entry) => !lifted.includes(entry)) }, null, 2)}\n`
+  )
+  run('git', ['add', file])
+  run('git', ['commit', '-m', subject, '-m', 'The peer ranges of the packages that held it back now accept it.'])
+  run('git', ['push', remoteUrl(), `HEAD:refs/heads/${branch}`])
+
+  const request = await api('POST', `/projects/${projectId()}/merge_requests`, {
+    source_branch: branch,
+    target_branch: 'main',
+    title: subject,
+    description: `The condition of the entry is met: ${lifted.map((entry) => `${entry.package} ${entry.unblock.version} (${entry.unblock.peers.join(', ')})`).join('; ')}. It is merged when its pipeline succeeds, and the update tools take the package at their next run.`,
+    remove_source_branch: true,
+    ...(await mergeRequestOptions()),
+  })
+
+  if (!request.ok) throw new Error(`The merge request could not be created: ${secret(JSON.stringify(request.data))}`)
+
+  log(`Merge request !${request.data.iid} created.`)
+  await notify('Dependency policy: block lifted', `${names}: ${request.data.web_url}`)
+  await mergeWhenGreen(request.data.iid)
+}
+
+const modes = { update, release, tag, cascade, audit, policy: policyWatch, 'policy-validate': policyValidate }
 
 async function main(mode) {
   if (!modes[mode]) {
-    console.error('Usage: node update-dependencies.mjs update | release | tag | cascade | audit')
+    console.error(
+      'Usage: node update-dependencies.mjs update | release | tag | cascade | audit | policy | policy-validate'
+    )
     process.exitCode = 1
     return
   }

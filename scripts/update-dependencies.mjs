@@ -210,6 +210,26 @@ export function isUrgent(severity) {
   return ['', 'high', 'critical'].includes(severity)
 }
 
+/** Whether an advisory is worth a push notification: moderate and above. An unknown severity counts as notable. */
+export function isNotable(severity) {
+  return ['', 'moderate', 'high', 'critical'].includes(severity)
+}
+
+/**
+ * The one notification of an audit, or null when nothing notable was opened. The advisories of a low severity only
+ * get their issue: they are counted, not listed.
+ */
+export function auditAlert(opened, project) {
+  const notable = opened.filter(({ row }) => isNotable(row.severity))
+  if (0 === notable.length) return null
+
+  const silent = opened.length - notable.length
+  const lines = notable.map(({ row, url }) => `${row.package} (${row.id}, ${row.severity || 'unknown'}): ${url}`)
+  if (0 < silent) lines.push(`${silent} more of a low severity, issue only.`)
+
+  return { title: `Security advisories: ${notable.length} new in ${project}`, message: lines.join('\n') }
+}
+
 /** The body of the issue opened for an advisory. */
 export function advisoryIssueBody(row, pipelineUrl, autoFix) {
   return [
@@ -677,6 +697,7 @@ async function audit() {
   const auto = 'true' === process.env.AUTO_FIX
   const token = process.env.FRESHNESS_TOKEN || process.env.GITLAB_TOKEN
   const titles = []
+  const opened = []
   let urgent = false
 
   log(`${found.length} security advisory(ies) found.`)
@@ -693,8 +714,12 @@ async function audit() {
 
     const url = await createIssue(title, advisoryIssueBody(row, process.env.CI_PIPELINE_URL ?? '', auto), token)
     log(`Issue created: ${url}`)
-    await notify(title, `${process.env.CI_PROJECT_PATH}: ${url}`)
+    opened.push({ row, url })
   }
+
+  // One message per audit, whatever the number of new advisories.
+  const alert = auditAlert(opened, process.env.CI_PROJECT_PATH)
+  if (alert) await notify(alert.title, alert.message)
 
   await closeResolved(titles, token)
 

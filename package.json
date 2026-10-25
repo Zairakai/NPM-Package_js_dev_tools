@@ -89,9 +89,10 @@
   },
   "dependencies": {
     "@stanislas-poisson/js-dev-tools": "^1.1.1",
-    "eslint": "^10.13.0",
+    "eslint": "^10.0.0",
     "markdownlint-cli2": "^0.24.0",
     "prettier": "^3.9.10",
+    "semver": "^7.8.5",
     "stylelint": "^17.16.0"
   },
   "devDependencies": {

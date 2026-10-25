@@ -5,11 +5,16 @@ import { describe, expect, it } from 'vitest'
 
 import {
   advisoryIssueBody,
+  advisoryLabels,
   advisoryTitle,
   auditAlert,
+  cooldownDate,
   detectEcosystem,
   diffDependencies,
+  fetchPolicy,
   formatChanges,
+  isInherited,
+  isLifted,
   isNotable,
   isRefOnlyChange,
   isUrgent,
@@ -18,8 +23,10 @@ import {
   nextVersion,
   parseNpmAudit,
   planTag,
+  rejectedPackages,
   runtimeChanged,
   signerIdentity,
+  validatePolicy,
 } from '../../scripts/update-dependencies.mjs'
 
 describe('latestTag', () => {
@@ -152,7 +159,7 @@ describe('planTag', () => {
 describe('loadConfig', () => {
   it('has defaults when the file is missing', () => {
     expect(loadConfig('/missing')).toMatchObject({
-      reject: ['typescript'],
+      reject: [],
       cooldown: '3d',
       tag: { when: 'runtime', level: 'patch' },
     })
@@ -339,6 +346,13 @@ describe('advisories', () => {
     expect(auditAlert([], 'p')).toBeNull()
   })
 
+  it('sets the priority from the severity, and the status', () => {
+    expect(advisoryLabels({ severity: 'critical' })).toContain('Priority::Critical')
+    expect(advisoryLabels({ severity: 'high' })).toContain('Priority::High')
+    expect(advisoryLabels({ severity: 'moderate' })).toContain('Priority::Low')
+    expect(advisoryLabels({ severity: '' })).toBe('Kind::Security,Area::Security,Automated,Priority::Low,Status::Ready')
+  })
+
   it('describes the advisory and the automatic fix in the issue', () => {
     const row = {
       id: 'GHSA-1',
@@ -352,5 +366,111 @@ describe('advisories', () => {
     expect(advisoryIssueBody(row, 'https://ci.test/1', true)).toContain('Automatic fix: started')
     expect(advisoryIssueBody({ ...row, severity: 'low' }, 'https://ci.test/1', true)).toContain('Automatic fix: off')
     expect(advisoryIssueBody(row, 'https://ci.test/1', false)).toContain('`lodash`')
+  })
+})
+
+describe('dependency policy', () => {
+  const entry = {
+    package: 'typescript',
+    reason: 'Not accepted by typescript-eslint.',
+    since: '2026-10-11',
+    unblock: { version: '7.0.0', peers: ['typescript-eslint'] },
+  }
+
+  it('accepts a valid policy and an empty one', () => {
+    expect(validatePolicy({ entries: [entry] })).toEqual([])
+    expect(validatePolicy({ entries: [] })).toEqual([])
+  })
+
+  it('reports what is wrong, entry by entry', () => {
+    expect(validatePolicy({})).toEqual(['"entries" must be a list.'])
+    expect(validatePolicy({ entries: [{}] })).toEqual([
+      'entries[0]: "package" is missing.',
+      'entries[0]: "reason" is missing.',
+      'entries[0]: "since" must be a date (YYYY-MM-DD).',
+    ])
+    expect(validatePolicy({ entries: [entry, entry] })).toEqual(['entries[1]: "typescript" is listed twice.'])
+    expect(validatePolicy({ entries: [{ ...entry, unblock: { version: 'seven', peers: [] } }] })).toEqual([
+      'entries[0]: "unblock.version" must be a version (X.Y.Z).',
+      'entries[0]: "unblock.peers" must be a list of packages.',
+    ])
+  })
+
+  it('reads the policy of an ecosystem from the base address', async () => {
+    const urls = []
+    const fetchImpl = async (url) => {
+      urls.push(url)
+
+      return { ok: true, json: async () => ({ entries: [entry] }) }
+    }
+
+    const policy = await fetchPolicy('npm', fetchImpl, 'https://x.test/raw/main/')
+
+    expect(urls).toEqual(['https://x.test/raw/main/node.json'])
+    expect(policy.entries).toHaveLength(1)
+
+    await fetchPolicy('composer', fetchImpl, 'https://x.test/raw/main')
+    expect(urls[1]).toBe('https://x.test/raw/main/php.json')
+  })
+
+  it('stops when the policy cannot be read or is not valid', async () => {
+    const down = async () => ({ ok: false, status: 503 })
+    const broken = async () => ({ ok: true, json: async () => ({ entries: 'no' }) })
+
+    await expect(fetchPolicy('npm', down, 'https://x.test')).rejects.toThrow('could not be read')
+    await expect(fetchPolicy('npm', broken, 'https://x.test')).rejects.toThrow('is not valid')
+  })
+
+  it('never updates the packages of the project and of the policy', () => {
+    expect(rejectedPackages({ reject: ['left-pad', 'typescript'] }, { entries: [entry] })).toEqual([
+      'left-pad',
+      'typescript',
+    ])
+  })
+
+  it('lifts an entry when every peer accepts the version', () => {
+    expect(isLifted(entry, { 'typescript-eslint': '>=4.8.4 <6.1.0' })).toBe(false)
+    expect(isLifted(entry, { 'typescript-eslint': '>=4.8.4 <8.0.0' })).toBe(true)
+    expect(isLifted(entry, { 'typescript-eslint': null })).toBe(false)
+    expect(isLifted(entry, { 'typescript-eslint': 'not a range' })).toBe(false)
+    expect(isLifted({ ...entry, unblock: undefined }, {})).toBe(false)
+    expect(isLifted({ ...entry, unblock: { version: '7.0.0', peers: ['a', 'b'] } }, { a: '>=7', b: '<7' })).toBe(false)
+  })
+
+  it('computes the date from which a version is taken', () => {
+    const now = new Date('2026-10-25T12:00:00Z')
+
+    expect(cooldownDate('3d', now).toISOString()).toBe('2026-10-22T12:00:00.000Z')
+    expect(cooldownDate('12h', now).toISOString()).toBe('2026-10-25T00:00:00.000Z')
+    expect(cooldownDate('soon', now)).toBeNull()
+  })
+})
+
+describe('isInherited', () => {
+  const lock = {
+    packages: {
+      '': {
+        dependencies: { '@zairakai/js-dev-tools': '^3.0.0' },
+        devDependencies: { vitest: '^5.0.0' },
+      },
+      'node_modules/@zairakai/js-dev-tools': { dependencies: { markdownlint: '1', zod: '4' } },
+      'node_modules/markdownlint': { dependencies: { katex: '0.16' } },
+      'node_modules/katex': {},
+      'node_modules/zod': {},
+      'node_modules/vitest': { dependencies: { zod: '4' } },
+    },
+  }
+
+  it('is true for a package that only the group brings', () => {
+    expect(isInherited(lock, 'katex')).toBe(true)
+  })
+
+  it('is false when the project reaches it by itself too', () => {
+    expect(isInherited(lock, 'zod')).toBe(false)
+  })
+
+  it('is false for a package that nothing in the group brings', () => {
+    expect(isInherited(lock, 'vitest')).toBe(false)
+    expect(isInherited({}, 'katex')).toBe(false)
   })
 })

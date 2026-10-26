@@ -29,6 +29,7 @@ import {
   rejectedPackages,
   runtimeChanged,
   signerIdentity,
+  syncDependabot,
   validatePolicy,
 } from '../../scripts/update-dependencies.mjs'
 
@@ -482,6 +483,47 @@ describe('policyViolations', () => {
     expect(
       policyViolations({ ...input, beforeLock: null, afterManifest: input.beforeManifest, afterLock: null })
     ).toEqual([])
+  })
+})
+
+describe('syncDependabot', () => {
+  const file = (rules) =>
+    [
+      'updates:',
+      '  - package-ecosystem: npm',
+      '    directory: /',
+      '    # BEGIN dependency-policy (npm)',
+      ...rules,
+      '    # END dependency-policy (npm)',
+      '    schedule:',
+      '      interval: weekly',
+      '',
+    ].join('\n')
+
+  it('writes one ignore rule per package of the policy, at the indentation of the markers', () => {
+    const synced = syncDependabot(file([]), ['typescript', '@prettier/plugin-php'], 'npm')
+
+    expect(synced).toBe(
+      file(['    ignore:', '      - dependency-name: "typescript"', '      - dependency-name: "@prettier/plugin-php"'])
+    )
+  })
+
+  it('removes the rules when the policy is empty, and replaces the old ones', () => {
+    const old = file(['    ignore:', '      - dependency-name: "old"'])
+
+    expect(syncDependabot(old, [], 'npm')).toBe(file([]))
+    expect(syncDependabot(old, ['new'], 'npm')).toBe(file(['    ignore:', '      - dependency-name: "new"']))
+  })
+
+  it('leaves the rest of the file and the other ecosystems alone', () => {
+    const text = `${file([])}  - package-ecosystem: github-actions\n    directory: /\n`
+
+    expect(syncDependabot(text, [], 'npm')).toBe(text)
+    expect(syncDependabot(text, ['x'], 'composer')).toBeNull()
+  })
+
+  it('has nothing to rewrite without the markers', () => {
+    expect(syncDependabot('updates: []\n', ['x'], 'npm')).toBeNull()
   })
 })
 

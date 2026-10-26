@@ -2,7 +2,7 @@
 /**
  * Automatic updates of the dependencies of a package of the zairakai group.
  *
- * Usage: node update-dependencies.mjs update | release | tag | cascade | audit | policy | policy-validate | policy-check <ref>
+ * Usage: node update-dependencies.mjs update | release | tag | cascade | audit | policy | policy-validate | policy-check <ref> | dependabot-sync
  *
  * - update: prepare a branch with the minor and patch updates, open a merge request into develop and merge it when its
  *   pipeline succeeds. The pipeline of the merge request is the gate: nothing is tested here.
@@ -14,6 +14,7 @@
  * - policy: in the repository dependency-policy, lift the entries whose condition is met (merge request).
  * - policy-validate: in the repository dependency-policy, check the shape of the files.
  * - policy-check: fail when the change since a ref updates a package of the policy (GitLab or GitHub, it only reads).
+ * - dependabot-sync: rewrite the ignore rules of .github/dependabot.yml (between the markers of the ecosystem) from the policy.
  *
  * The packages listed in the dependency policy (https://gitlab.com/zairakai/dependency-policy) are never updated, whatever
  * the project. DEPENDENCY_POLICY_URL replaces the address of the files.
@@ -45,6 +46,7 @@ const ISSUE_LABELS = ['Kind::Security', 'Area::Security', 'Automated']
 const POLICY_URL = 'https://gitlab.com/zairakai/dependency-policy/-/raw/main'
 const POLICY_FILES = { npm: 'node.json', composer: 'php.json' }
 const POLICY_BRANCH_PREFIX = 'chore/unblock'
+const DEPENDABOT_FILE = '.github/dependabot.yml'
 const GROUP_SCOPE = '@zairakai/'
 const TRUSTED_SCOPES = [GROUP_SCOPE, '@stanislas-poisson/']
 
@@ -290,6 +292,28 @@ export function policyViolations({ blocked, beforeManifest, afterManifest, befor
   }
 
   return problems
+}
+
+/**
+ * The text of dependabot.yml with the block of the ecosystem rewritten: between `# BEGIN dependency-policy (npm)` and
+ * `# END dependency-policy (npm)`, one ignore rule per package of the policy (nothing when none). Null without markers.
+ */
+export function syncDependabot(text, names, ecosystem) {
+  const begin = `# BEGIN dependency-policy (${ecosystem})`
+  const end = `# END dependency-policy (${ecosystem})`
+  const pattern = new RegExp(
+    `^([ \\t]*)${begin.replaceAll(/[()]/g, '\\$&')}\\n[\\s\\S]*?^[ \\t]*${end.replaceAll(/[()]/g, '\\$&')}$`,
+    'm'
+  )
+  const match = pattern.exec(text)
+
+  if (null === match) return null
+
+  const indent = match[1]
+  const rules =
+    0 === names.length ? [] : [`${indent}ignore:`, ...names.map((name) => `${indent}  - dependency-name: "${name}"`)]
+
+  return text.replace(pattern, () => [`${indent}${begin}`, ...rules, `${indent}${end}`].join('\n'))
 }
 
 /**
@@ -1120,6 +1144,29 @@ async function policyCheck(_config, base) {
   log('No package of the dependency policy is updated.')
 }
 
+/** Rewrite the ignore rules of .github/dependabot.yml from the policy. The workflow of the repository commits the result. */
+async function dependabotSync() {
+  if (!existsSync(DEPENDABOT_FILE)) throw new Error(`${DEPENDABOT_FILE} does not exist.`)
+
+  const names = (await readPolicy('npm')).entries.map((entry) => entry.package)
+  const text = readFileSync(DEPENDABOT_FILE, 'utf8')
+  const synced = syncDependabot(text, names, 'npm')
+
+  if (null === synced) {
+    throw new Error(
+      `${DEPENDABOT_FILE} has no block "# BEGIN dependency-policy (npm)" ... "# END dependency-policy (npm)".`
+    )
+  }
+
+  if (synced === text) {
+    log('The ignore rules of Dependabot are in sync with the policy.')
+    return
+  }
+
+  writeFileSync(DEPENDABOT_FILE, synced)
+  log(`The ignore rules of Dependabot are updated: ${names.join(', ') || 'none'}.`)
+}
+
 const modes = {
   update,
   release,
@@ -1129,6 +1176,7 @@ const modes = {
   policy: policyWatch,
   'policy-validate': policyValidate,
   'policy-check': policyCheck,
+  'dependabot-sync': dependabotSync,
 }
 
 async function main(mode, argument) {

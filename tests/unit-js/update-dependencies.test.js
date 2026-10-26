@@ -12,6 +12,7 @@ import {
   detectEcosystem,
   diffDependencies,
   fetchPolicy,
+  fixedOverrides,
   formatChanges,
   isInherited,
   isLifted,
@@ -524,6 +525,40 @@ describe('syncDependabot', () => {
 
   it('has nothing to rewrite without the markers', () => {
     expect(syncDependabot('updates: []\n', ['x'], 'npm')).toBeNull()
+  })
+})
+
+describe('fixedOverrides', () => {
+  const versions = {
+    'markdown-it': ['14.3.1', '14.3.2', '14.3.3', '15.0.3', '14.4.0-rc.1'],
+    'js-yaml': ['4.3.2', '4.3.3'],
+  }
+  const versionsOf = (name) => versions[name]
+  const vulnerabilities = {
+    'markdown-it': { range: '<=14.3.2' },
+    'js-yaml': { range: '<4.3.2' },
+    other: { range: '*' },
+  }
+
+  it('raises an override that pins a vulnerable version, within its major', () => {
+    expect(fixedOverrides({ 'markdown-it': '14.3.2' }, vulnerabilities, versionsOf)).toEqual({
+      'markdown-it': '14.3.3',
+    })
+  })
+
+  it('reads the form with a dot, and leaves a safe pin alone', () => {
+    expect(fixedOverrides({ 'js-yaml': { '.': '4.3.2' } }, vulnerabilities, versionsOf)).toEqual({})
+    expect(fixedOverrides({ 'js-yaml': { '.': '4.3.1' } }, { 'js-yaml': { range: '<=4.3.1' } }, versionsOf)).toEqual({
+      'js-yaml': '4.3.3',
+    })
+  })
+
+  it('does nothing without a fixed version, a range or a plain version', () => {
+    expect(fixedOverrides({ 'markdown-it': '14.3.3' }, vulnerabilities, versionsOf)).toEqual({})
+    expect(fixedOverrides({ 'markdown-it': '14.3.2' }, { 'markdown-it': { range: '*' } }, versionsOf)).toEqual({})
+    expect(fixedOverrides({ 'markdown-it': '^14.0.0' }, vulnerabilities, versionsOf)).toEqual({})
+    expect(fixedOverrides({ unknown: '1.0.0' }, vulnerabilities, versionsOf)).toEqual({})
+    expect(fixedOverrides(undefined, vulnerabilities, versionsOf)).toEqual({})
   })
 })
 

@@ -10,7 +10,8 @@
  * - tag: tag main when a runtime range changed since the last tag (see `tag` in .dependency-update.json).
  * - cascade: after the publication of this package, start the update of the projects that use it.
  * - audit: look for security advisories, open one issue per advisory and, with AUTO_FIX=true, start an update to fix them
- *   (UPDATE_URGENT=true: the new versions are taken without waiting, and `npm audit fix` is run).
+ *   (UPDATE_URGENT=true: the new versions are taken without waiting, `npm audit fix` is run and an override that pins a
+ *   vulnerable version is raised).
  * - policy: in the repository dependency-policy, lift the entries whose condition is met (merge request).
  * - policy-validate: in the repository dependency-policy, check the shape of the files.
  * - policy-check: fail when the change since a ref updates a package of the policy (GitLab or GitHub, it only reads).
@@ -314,6 +315,35 @@ export function syncDependabot(text, names, ecosystem) {
     0 === names.length ? [] : [`${indent}ignore:`, ...names.map((name) => `${indent}  - dependency-name: "${name}"`)]
 
   return text.replace(pattern, () => [`${indent}${begin}`, ...rules, `${indent}${end}`].join('\n'))
+}
+
+/**
+ * The overrides that pin a version inside the vulnerable range of an advisory (`npm audit` never changes an override), with
+ * the newest stable version of the same major that is outside of that range. `versionsOf(name)` lists the published versions.
+ */
+export function fixedOverrides(overrides, vulnerabilities, versionsOf) {
+  const fixes = {}
+
+  for (const [name, pin] of Object.entries(overrides ?? {})) {
+    const pinned = 'string' === typeof pin ? pin : pin?.['.']
+    const range = vulnerabilities?.[name]?.range
+
+    if (null === semver.valid(pinned) || 'string' !== typeof range || null === semver.validRange(range)) continue
+    if (!semver.satisfies(pinned, range)) continue
+
+    const candidates = (versionsOf(name) ?? []).filter(
+      (version) =>
+        null !== semver.valid(version) &&
+        null === semver.prerelease(version) &&
+        semver.major(version) === semver.major(pinned) &&
+        !semver.satisfies(version, range)
+    )
+    const best = semver.maxSatisfying(candidates, '*')
+
+    if (best && semver.gt(best, pinned)) fixes[name] = best
+  }
+
+  return fixes
 }
 
 /**
@@ -644,6 +674,29 @@ function ncu(args) {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
+/** Raise the overrides that pin a vulnerable version, then install. Returns the raised ones. */
+function raiseVulnerableOverrides() {
+  const manifest = JSON.parse(readFileSync('package.json', 'utf8'))
+  if (!manifest.overrides) return {}
+
+  const report = JSON.parse(capture('npm', ['audit', '--json']) || '{}')
+  const fixes = fixedOverrides(manifest.overrides, report.vulnerabilities, (name) =>
+    JSON.parse(capture('npm', ['view', name, 'versions', '--json']) || '[]')
+  )
+
+  for (const [name, version] of Object.entries(fixes)) {
+    if ('string' === typeof manifest.overrides[name]) manifest.overrides[name] = version
+    else manifest.overrides[name]['.'] = version
+  }
+
+  if (0 < Object.keys(fixes).length) {
+    writeFileSync('package.json', `${JSON.stringify(manifest, null, 2)}\n`)
+    run('npm', ['install', '--no-audit', '--no-fund'])
+  }
+
+  return fixes
+}
+
 async function update(config) {
   assertEnvironment()
 
@@ -691,6 +744,14 @@ async function update(config) {
         run('npm', ['audit', 'fix', '--no-fund'])
       } catch (error) {
         log(`npm audit fix did not apply: ${secret(error.message).split('\n')[0]}`)
+      }
+
+      // npm audit fix leaves the overrides alone: one that pins a vulnerable version is raised here.
+      try {
+        const raised = raiseVulnerableOverrides()
+        for (const [name, version] of Object.entries(raised)) log(`The override of ${name} is raised to ${version}.`)
+      } catch (error) {
+        log(`The overrides are not raised this time: ${secret(error.message).split('\n')[0]}`)
       }
     }
   }

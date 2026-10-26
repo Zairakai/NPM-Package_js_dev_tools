@@ -2,7 +2,7 @@
 /**
  * Automatic updates of the dependencies of a package of the zairakai group.
  *
- * Usage: node update-dependencies.mjs update | release | tag | cascade | audit | policy | policy-validate
+ * Usage: node update-dependencies.mjs update | release | tag | cascade | audit | policy | policy-validate | policy-check <ref>
  *
  * - update: prepare a branch with the minor and patch updates, open a merge request into develop and merge it when its
  *   pipeline succeeds. The pipeline of the merge request is the gate: nothing is tested here.
@@ -11,9 +11,9 @@
  * - cascade: after the publication of this package, start the update of the projects that use it.
  * - audit: look for security advisories, open one issue per advisory and, with AUTO_FIX=true, start an update to fix them
  *   (UPDATE_URGENT=true: the new versions are taken without waiting, and `npm audit fix` is run).
- * - policy: in the repository dependency-policy, lift the entries of node.json and php.json whose condition is met (merge
- *   request).
+ * - policy: in the repository dependency-policy, lift the entries whose condition is met (merge request).
  * - policy-validate: in the repository dependency-policy, check the shape of the files.
+ * - policy-check: fail when the change since a ref updates a package of the policy (GitLab or GitHub, it only reads).
  *
  * The packages listed in the dependency policy (https://gitlab.com/zairakai/dependency-policy) are never updated, whatever
  * the project. DEPENDENCY_POLICY_URL replaces the address of the files.
@@ -253,77 +253,43 @@ export function isLifted(entry, ranges) {
   })
 }
 
-/** One token of a Composer constraint as semver reads it: only `~` differs (`~1.2` is `>=1.2.0 <2.0.0` for Composer). */
-function composerToken(token) {
-  const tilde = /^~v?(\d+)(?:\.(\d+))?$/.exec(token)
+/** The versions of every package of a package-lock.json, by name (a package installed twice has several). */
+export function lockedVersions(lock) {
+  const versions = {}
 
-  return tilde ? `>=${tilde[1]}.${tilde[2] ?? 0}.0 <${Number(tilde[1]) + 1}.0.0` : token
+  for (const [path, info] of Object.entries(lock?.packages ?? {})) {
+    if ('' === path || !info?.version) continue
+
+    const name = path.slice(path.lastIndexOf('node_modules/') + 'node_modules/'.length)
+    versions[name] = [...new Set([...(versions[name] ?? []), info.version])].sort()
+  }
+
+  return versions
 }
 
 /**
- * A Composer constraint (`||` or `|`, comma or space, `~`, `^`, `*`, `@stable`) as a range that semver compares, or null
- * when it cannot be expressed (branches, `!=`, aliases): a peer whose range is not understood never lifts an entry.
+ * The packages of the policy whose version changes: a range of package.json or a locked version. A package that is
+ * added or removed is not an update.
  */
-export function composerRange(constraint) {
-  if ('string' !== typeof constraint) return null
+export function policyViolations({ blocked, beforeManifest, afterManifest, beforeLock, afterLock }) {
+  const problems = []
 
-  const text = constraint.replace(/@\w+/g, '').trim()
-  if ('' === text || /(^|[\s|,])dev-|\sas\s|!=/.test(text)) return null
-
-  const alternatives = text.split(/\s*\|\|?\s*/).map((alternative) => {
-    if (/\s-\s/.test(alternative)) return alternative.trim()
-
-    return alternative.replaceAll(',', ' ').split(/\s+/).filter(Boolean).map(composerToken).join(' ')
-  })
-
-  if (alternatives.includes('')) return null
-
-  const range = alternatives.join(' || ')
-
-  return null === semver.validRange(range) ? null : range
-}
-
-/** The releases of the metadata of Packagist (p2) in full: after the first one, each lists only what changed. */
-export function expandReleases(releases) {
-  let previous = {}
-
-  return releases.map((release) => {
-    const full = { ...previous }
-
-    for (const [key, value] of Object.entries(release)) {
-      if ('__unset' === value) delete full[key]
-      else full[key] = value
-    }
-
-    previous = full
-
-    return full
-  })
-}
-
-/** The highest stable release, or null. */
-export function latestStable(releases) {
-  let latest = null
-  let latestVersion = null
-
-  for (const release of releases) {
-    const version = semver.valid(String(release.version ?? '').replace(/^v/, ''))
-    if (null === version || null !== semver.prerelease(version)) continue
-
-    if (null === latestVersion || semver.gt(version, latestVersion)) {
-      latest = release
-      latestVersion = version
+  for (const row of diffDependencies(beforeManifest, afterManifest)) {
+    if (blocked.includes(row.name) && null !== row.from && null !== row.to) {
+      problems.push(`package.json: ${row.name} moves from ${row.from} to ${row.to}.`)
     }
   }
 
-  return latest
-}
+  const before = lockedVersions(beforeLock)
+  const after = lockedVersions(afterLock)
 
-/** The range in which the latest stable release of a Composer package requires `name`, or null. */
-export function composerPeerRange(releases, name) {
-  const constraint = latestStable(expandReleases(releases))?.require?.[name]
+  for (const name of blocked) {
+    if (before[name] && after[name] && before[name].join(', ') !== after[name].join(', ')) {
+      problems.push(`package-lock.json: ${name} moves from ${before[name].join(', ')} to ${after[name].join(', ')}.`)
+    }
+  }
 
-  return composerRange(constraint)
+  return problems
 }
 
 /**
@@ -1047,20 +1013,6 @@ function peerRange(peer, name) {
   }
 }
 
-/** The range in which the latest release of the Composer package `peer` requires `name`, or null. */
-export async function composerPeerRangeOnline(peer, name, fetchImpl = fetch) {
-  try {
-    const response = await fetchImpl(`https://repo.packagist.org/p2/${peer}.json`, {
-      signal: AbortSignal.timeout(20000),
-    })
-    if (!response.ok) return null
-
-    return composerPeerRange((await response.json()).packages?.[peer] ?? [], name)
-  } catch {
-    return null
-  }
-}
-
 /** In the repository dependency-policy: check the shape of the files. */
 async function policyValidate() {
   let failed = false
@@ -1083,42 +1035,24 @@ async function policyValidate() {
   log('The dependency policy is valid.')
 }
 
-/** The range in which the latest release of `peer` requires `name`, in the registry of the ecosystem. */
-function peerRangeOf(ecosystem, peer, name) {
-  return 'npm' === ecosystem ? peerRange(peer, name) : composerPeerRangeOnline(peer, name)
-}
-
 /** In the repository dependency-policy: lift the entries whose condition is met, with a merge request into main. */
 async function policyWatch() {
   assertEnvironment()
 
-  const changes = []
+  const file = POLICY_FILES.npm
+  const doc = JSON.parse(readFileSync(file, 'utf8'))
+  const errors = validatePolicy(doc)
+  if (0 < errors.length) throw new Error(`${file} is not valid: ${errors.join(' ')}`)
 
-  for (const [ecosystem, file] of Object.entries(POLICY_FILES)) {
-    if (!existsSync(file)) continue
+  const lifted = doc.entries.filter((entry) => {
+    if (!entry.unblock) return false
 
-    const doc = JSON.parse(readFileSync(file, 'utf8'))
-    const errors = validatePolicy(doc)
-    if (0 < errors.length) throw new Error(`${file} is not valid: ${errors.join(' ')}`)
+    const ranges = Object.fromEntries(entry.unblock.peers.map((peer) => [peer, peerRange(peer, entry.package)]))
 
-    const lifted = []
+    return isLifted(entry, ranges)
+  })
 
-    for (const entry of doc.entries) {
-      if (!entry.unblock) continue
-
-      const ranges = Object.fromEntries(
-        await Promise.all(
-          entry.unblock.peers.map(async (peer) => [peer, await peerRangeOf(ecosystem, peer, entry.package)])
-        )
-      )
-
-      if (isLifted(entry, ranges)) lifted.push(entry)
-    }
-
-    if (0 < lifted.length) changes.push({ file, doc, lifted })
-  }
-
-  if (0 === changes.length) {
+  if (0 === lifted.length) {
     log('No entry can be lifted.')
     return
   }
@@ -1128,22 +1062,17 @@ async function policyWatch() {
     return
   }
 
-  const all = changes.flatMap(({ lifted }) => lifted)
-  const names = all.map((entry) => entry.package).join(', ')
+  const names = lifted.map((entry) => entry.package).join(', ')
   const branch = `${POLICY_BRANCH_PREFIX}-${new Date().toISOString().slice(0, 10).replaceAll('-', '')}`
   const subject = `chore(policy): unblock ${names}`
 
   configureSigning()
   run('git', ['switch', '-C', branch])
-
-  for (const { file, doc, lifted } of changes) {
-    writeFileSync(
-      file,
-      `${JSON.stringify({ ...doc, entries: doc.entries.filter((entry) => !lifted.includes(entry)) }, null, 2)}\n`
-    )
-    run('git', ['add', file])
-  }
-
+  writeFileSync(
+    file,
+    `${JSON.stringify({ ...doc, entries: doc.entries.filter((entry) => !lifted.includes(entry)) }, null, 2)}\n`
+  )
+  run('git', ['add', file])
   run('git', ['commit', '-m', subject, '-m', 'The peer ranges of the packages that held it back now accept it.'])
   run('git', ['push', remoteUrl(), `HEAD:refs/heads/${branch}`])
 
@@ -1151,7 +1080,7 @@ async function policyWatch() {
     source_branch: branch,
     target_branch: 'main',
     title: subject,
-    description: `The condition of the entry is met: ${all.map((entry) => `${entry.package} ${entry.unblock.version} (${entry.unblock.peers.join(', ')})`).join('; ')}. It is merged when its pipeline succeeds, and the update tools take the package at their next run.`,
+    description: `The condition of the entry is met: ${lifted.map((entry) => `${entry.package} ${entry.unblock.version} (${entry.unblock.peers.join(', ')})`).join('; ')}. It is merged when its pipeline succeeds, and the update tools take the package at their next run.`,
     remove_source_branch: true,
     ...(await mergeRequestOptions()),
   })
@@ -1163,9 +1092,46 @@ async function policyWatch() {
   await mergeWhenGreen(request.data.iid)
 }
 
-const modes = { update, release, tag, cascade, audit, policy: policyWatch, 'policy-validate': policyValidate }
+/** Fail when the working tree updates a package of the policy compared with `base`: a range or a locked version. */
+async function policyCheck(_config, base) {
+  if (!base) throw new Error('Usage: node update-dependencies.mjs policy-check <ref>')
 
-async function main(mode) {
+  const blocked = (await readPolicy('npm')).entries.map((entry) => entry.package)
+  const atBase = (file) => {
+    try {
+      return JSON.parse(capture('git', ['show', `${base}:${file}`]))
+    } catch {
+      return null
+    }
+  }
+  const now = (file) => (existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null)
+
+  const problems = policyViolations({
+    blocked,
+    beforeManifest: atBase('package.json'),
+    afterManifest: now('package.json'),
+    beforeLock: atBase('package-lock.json'),
+    afterLock: now('package-lock.json'),
+  })
+
+  for (const problem of problems) console.error(problem)
+  if (0 < problems.length) throw new Error('The change updates a package that the dependency policy holds back.')
+
+  log('No package of the dependency policy is updated.')
+}
+
+const modes = {
+  update,
+  release,
+  tag,
+  cascade,
+  audit,
+  policy: policyWatch,
+  'policy-validate': policyValidate,
+  'policy-check': policyCheck,
+}
+
+async function main(mode, argument) {
   if (!modes[mode]) {
     console.error(
       'Usage: node update-dependencies.mjs update | release | tag | cascade | audit | policy | policy-validate'
@@ -1175,7 +1141,7 @@ async function main(mode) {
   }
 
   try {
-    await modes[mode](loadConfig())
+    await modes[mode](loadConfig(), argument)
   } catch (error) {
     console.error(secret(error.message))
     process.exitCode = 1
@@ -1183,5 +1149,5 @@ async function main(mode) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  await main(process.argv[2])
+  await main(process.argv[2], process.argv[3])
 }

@@ -8,13 +8,9 @@ import {
   advisoryLabels,
   advisoryTitle,
   auditAlert,
-  composerPeerRange,
-  composerPeerRangeOnline,
-  composerRange,
   cooldownDate,
   detectEcosystem,
   diffDependencies,
-  expandReleases,
   fetchPolicy,
   formatChanges,
   isInherited,
@@ -22,12 +18,13 @@ import {
   isNotable,
   isRefOnlyChange,
   isUrgent,
-  latestStable,
   latestTag,
   loadConfig,
+  lockedVersions,
   nextVersion,
   parseNpmAudit,
   planTag,
+  policyViolations,
   refreshableNames,
   rejectedPackages,
   runtimeChanged,
@@ -452,99 +449,39 @@ describe('dependency policy', () => {
   })
 })
 
-describe('composerRange', () => {
-  it('reads the operators of Composer as semver does', () => {
-    expect(composerRange('^8.1')).toBe('^8.1')
-    expect(composerRange('>=8.1 <9.0')).toBe('>=8.1 <9.0')
-    expect(composerRange('>=8.1, <9.0')).toBe('>=8.1 <9.0')
-    expect(composerRange('1.2.*')).toBe('1.2.*')
-    expect(composerRange('^1.0@stable')).toBe('^1.0')
-  })
-
-  it('accepts both forms of "or"', () => {
-    expect(composerRange('^7.0 || ^8.0')).toBe('^7.0 || ^8.0')
-    expect(composerRange('^7.0 | ^8.0')).toBe('^7.0 || ^8.0')
-  })
-
-  it('reads ~ as Composer does, not as semver', () => {
-    // ~1.2 is >=1.2.0 <2.0.0 for Composer, and >=1.2.0 <1.3.0 for semver
-    expect(composerRange('~1.2')).toBe('>=1.2.0 <2.0.0')
-    expect(composerRange('~1')).toBe('>=1.0.0 <2.0.0')
-    expect(composerRange('~1.2.3')).toBe('~1.2.3')
-  })
-
-  it('has no range for what semver cannot express', () => {
-    expect(composerRange('dev-main')).toBeNull()
-    expect(composerRange('^1.0 || dev-main')).toBeNull()
-    expect(composerRange('!=1.5')).toBeNull()
-    expect(composerRange('dev-main as 1.0.0')).toBeNull()
-    expect(composerRange('^1.0 ||')).toBeNull()
-    expect(composerRange('')).toBeNull()
-    expect(composerRange(undefined)).toBeNull()
-    expect(composerRange('not a range')).toBeNull()
-  })
-
-  it('lifts an entry through the range of a Composer peer', () => {
-    const entry = { package: 'guzzlehttp/guzzle', unblock: { version: '8.0.0', peers: ['acme/client'] } }
-
-    expect(isLifted(entry, { 'acme/client': composerRange('^7.8') })).toBe(false)
-    expect(isLifted(entry, { 'acme/client': composerRange('^7.8 || ^8.0') })).toBe(true)
-    expect(isLifted(entry, { 'acme/client': composerRange('~7.8') })).toBe(false)
-    expect(isLifted(entry, { 'acme/client': composerRange('~7.8 | ~8.0') })).toBe(true)
-  })
-})
-
-describe('Packagist metadata', () => {
-  const minified = [
-    { name: 'acme/client', version: '3.0.0-beta.1', require: { 'guzzlehttp/guzzle': '^8.0' } },
-    { version: '2.1.0', require: { 'guzzlehttp/guzzle': '^7.8 || ^8.0' }, description: 'kept' },
-    { version: '2.0.0', require: { 'guzzlehttp/guzzle': '^7.8' }, description: '__unset' },
-    { version: 'dev-main' },
-  ]
-
-  it('completes the releases that list only what changed', () => {
-    const full = expandReleases(minified)
-
-    expect(full[1]).toMatchObject({ name: 'acme/client', version: '2.1.0', description: 'kept' })
-    expect(full[2]).toMatchObject({ name: 'acme/client', version: '2.0.0' })
-    expect(full[2]).not.toHaveProperty('description')
-  })
-
-  it('takes the highest stable release, with or without a v prefix', () => {
-    expect(latestStable(expandReleases(minified)).version).toBe('2.1.0')
-    expect(latestStable([{ version: 'v1.2.0' }, { version: 'v1.10.0' }, { version: 'v2.0.0-rc.1' }]).version).toBe(
-      'v1.10.0'
-    )
-    expect(latestStable([{ version: 'dev-main' }])).toBeNull()
-    expect(latestStable([])).toBeNull()
-  })
-
-  it('reads the range in which the latest stable release requires a package', () => {
-    expect(composerPeerRange(minified, 'guzzlehttp/guzzle')).toBe('^7.8 || ^8.0')
-    expect(composerPeerRange(minified, 'other/package')).toBeNull()
-    expect(composerPeerRange([], 'guzzlehttp/guzzle')).toBeNull()
-  })
-
-  it('reads the metadata of a peer on Packagist', async () => {
-    const urls = []
-    const fetchImpl = async (url) => {
-      urls.push(url)
-
-      return { ok: true, json: async () => ({ packages: { 'acme/client': minified } }) }
+describe('policyViolations', () => {
+  it('lists the versions of a lock file, with the packages installed twice', () => {
+    const lock = {
+      packages: {
+        '': { name: 'root' },
+        'node_modules/a': { version: '1.0.0' },
+        'node_modules/@s/b': { version: '2.0.0' },
+        'node_modules/c/node_modules/a': { version: '0.9.0' },
+      },
     }
 
-    expect(await composerPeerRangeOnline('acme/client', 'guzzlehttp/guzzle', fetchImpl)).toBe('^7.8 || ^8.0')
-    expect(urls).toEqual(['https://repo.packagist.org/p2/acme/client.json'])
+    expect(lockedVersions(lock)).toEqual({ a: ['0.9.0', '1.0.0'], '@s/b': ['2.0.0'] })
+    expect(lockedVersions(null)).toEqual({})
   })
 
-  it('has no range when Packagist cannot be read', async () => {
-    const down = async () => ({ ok: false, status: 503 })
-    const broken = async () => {
-      throw new Error('network')
+  it('reports the packages of the policy that a change updates', () => {
+    const lock = (a, b) => ({ packages: { 'node_modules/a': { version: a }, 'node_modules/b': { version: b } } })
+    const input = {
+      blocked: ['a', 'b', 'c'],
+      beforeManifest: { dependencies: { a: '^1.0.0', d: '^1.0.0' }, devDependencies: { c: '^1.0.0' } },
+      afterManifest: { dependencies: { a: '^2.0.0', d: '^2.0.0' }, devDependencies: {} },
+      beforeLock: lock('1.0.0', '1.0.0'),
+      afterLock: lock('2.0.0', '1.0.0'),
     }
 
-    expect(await composerPeerRangeOnline('acme/client', 'guzzlehttp/guzzle', down)).toBeNull()
-    expect(await composerPeerRangeOnline('acme/client', 'guzzlehttp/guzzle', broken)).toBeNull()
+    expect(policyViolations(input)).toEqual([
+      'package.json: a moves from ^1.0.0 to ^2.0.0.',
+      'package-lock.json: a moves from 1.0.0 to 2.0.0.',
+    ])
+    expect(policyViolations({ ...input, blocked: [] })).toEqual([])
+    expect(
+      policyViolations({ ...input, beforeLock: null, afterManifest: input.beforeManifest, afterLock: null })
+    ).toEqual([])
   })
 })
 

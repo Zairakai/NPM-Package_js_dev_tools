@@ -11,7 +11,8 @@
  * - cascade: after the publication of this package, start the update of the projects that use it.
  * - audit: look for security advisories, open one issue per advisory and, with AUTO_FIX=true, start an update to fix them
  *   (UPDATE_URGENT=true: the new versions are taken without waiting, and `npm audit fix` is run).
- * - policy: in the repository dependency-policy, lift the entries whose condition is met (merge request).
+ * - policy: in the repository dependency-policy, lift the entries of node.json and php.json whose condition is met (merge
+ *   request).
  * - policy-validate: in the repository dependency-policy, check the shape of the files.
  *
  * The packages listed in the dependency policy (https://gitlab.com/zairakai/dependency-policy) are never updated, whatever
@@ -250,6 +251,79 @@ export function isLifted(entry, ranges) {
       'string' === typeof range && null !== semver.validRange(range) && semver.satisfies(entry.unblock.version, range)
     )
   })
+}
+
+/** One token of a Composer constraint as semver reads it: only `~` differs (`~1.2` is `>=1.2.0 <2.0.0` for Composer). */
+function composerToken(token) {
+  const tilde = /^~v?(\d+)(?:\.(\d+))?$/.exec(token)
+
+  return tilde ? `>=${tilde[1]}.${tilde[2] ?? 0}.0 <${Number(tilde[1]) + 1}.0.0` : token
+}
+
+/**
+ * A Composer constraint (`||` or `|`, comma or space, `~`, `^`, `*`, `@stable`) as a range that semver compares, or null
+ * when it cannot be expressed (branches, `!=`, aliases): a peer whose range is not understood never lifts an entry.
+ */
+export function composerRange(constraint) {
+  if ('string' !== typeof constraint) return null
+
+  const text = constraint.replace(/@\w+/g, '').trim()
+  if ('' === text || /(^|[\s|,])dev-|\sas\s|!=/.test(text)) return null
+
+  const alternatives = text.split(/\s*\|\|?\s*/).map((alternative) => {
+    if (/\s-\s/.test(alternative)) return alternative.trim()
+
+    return alternative.replaceAll(',', ' ').split(/\s+/).filter(Boolean).map(composerToken).join(' ')
+  })
+
+  if (alternatives.includes('')) return null
+
+  const range = alternatives.join(' || ')
+
+  return null === semver.validRange(range) ? null : range
+}
+
+/** The releases of the metadata of Packagist (p2) in full: after the first one, each lists only what changed. */
+export function expandReleases(releases) {
+  let previous = {}
+
+  return releases.map((release) => {
+    const full = { ...previous }
+
+    for (const [key, value] of Object.entries(release)) {
+      if ('__unset' === value) delete full[key]
+      else full[key] = value
+    }
+
+    previous = full
+
+    return full
+  })
+}
+
+/** The highest stable release, or null. */
+export function latestStable(releases) {
+  let latest = null
+  let latestVersion = null
+
+  for (const release of releases) {
+    const version = semver.valid(String(release.version ?? '').replace(/^v/, ''))
+    if (null === version || null !== semver.prerelease(version)) continue
+
+    if (null === latestVersion || semver.gt(version, latestVersion)) {
+      latest = release
+      latestVersion = version
+    }
+  }
+
+  return latest
+}
+
+/** The range in which the latest stable release of a Composer package requires `name`, or null. */
+export function composerPeerRange(releases, name) {
+  const constraint = latestStable(expandReleases(releases))?.require?.[name]
+
+  return composerRange(constraint)
 }
 
 /**
@@ -973,6 +1047,20 @@ function peerRange(peer, name) {
   }
 }
 
+/** The range in which the latest release of the Composer package `peer` requires `name`, or null. */
+export async function composerPeerRangeOnline(peer, name, fetchImpl = fetch) {
+  try {
+    const response = await fetchImpl(`https://repo.packagist.org/p2/${peer}.json`, {
+      signal: AbortSignal.timeout(20000),
+    })
+    if (!response.ok) return null
+
+    return composerPeerRange((await response.json()).packages?.[peer] ?? [], name)
+  } catch {
+    return null
+  }
+}
+
 /** In the repository dependency-policy: check the shape of the files. */
 async function policyValidate() {
   let failed = false
@@ -995,24 +1083,42 @@ async function policyValidate() {
   log('The dependency policy is valid.')
 }
 
+/** The range in which the latest release of `peer` requires `name`, in the registry of the ecosystem. */
+function peerRangeOf(ecosystem, peer, name) {
+  return 'npm' === ecosystem ? peerRange(peer, name) : composerPeerRangeOnline(peer, name)
+}
+
 /** In the repository dependency-policy: lift the entries whose condition is met, with a merge request into main. */
 async function policyWatch() {
   assertEnvironment()
 
-  const file = POLICY_FILES.npm
-  const doc = JSON.parse(readFileSync(file, 'utf8'))
-  const errors = validatePolicy(doc)
-  if (0 < errors.length) throw new Error(`${file} is not valid: ${errors.join(' ')}`)
+  const changes = []
 
-  const lifted = doc.entries.filter((entry) => {
-    if (!entry.unblock) return false
+  for (const [ecosystem, file] of Object.entries(POLICY_FILES)) {
+    if (!existsSync(file)) continue
 
-    const ranges = Object.fromEntries(entry.unblock.peers.map((peer) => [peer, peerRange(peer, entry.package)]))
+    const doc = JSON.parse(readFileSync(file, 'utf8'))
+    const errors = validatePolicy(doc)
+    if (0 < errors.length) throw new Error(`${file} is not valid: ${errors.join(' ')}`)
 
-    return isLifted(entry, ranges)
-  })
+    const lifted = []
 
-  if (0 === lifted.length) {
+    for (const entry of doc.entries) {
+      if (!entry.unblock) continue
+
+      const ranges = Object.fromEntries(
+        await Promise.all(
+          entry.unblock.peers.map(async (peer) => [peer, await peerRangeOf(ecosystem, peer, entry.package)])
+        )
+      )
+
+      if (isLifted(entry, ranges)) lifted.push(entry)
+    }
+
+    if (0 < lifted.length) changes.push({ file, doc, lifted })
+  }
+
+  if (0 === changes.length) {
     log('No entry can be lifted.')
     return
   }
@@ -1022,17 +1128,22 @@ async function policyWatch() {
     return
   }
 
-  const names = lifted.map((entry) => entry.package).join(', ')
+  const all = changes.flatMap(({ lifted }) => lifted)
+  const names = all.map((entry) => entry.package).join(', ')
   const branch = `${POLICY_BRANCH_PREFIX}-${new Date().toISOString().slice(0, 10).replaceAll('-', '')}`
   const subject = `chore(policy): unblock ${names}`
 
   configureSigning()
   run('git', ['switch', '-C', branch])
-  writeFileSync(
-    file,
-    `${JSON.stringify({ ...doc, entries: doc.entries.filter((entry) => !lifted.includes(entry)) }, null, 2)}\n`
-  )
-  run('git', ['add', file])
+
+  for (const { file, doc, lifted } of changes) {
+    writeFileSync(
+      file,
+      `${JSON.stringify({ ...doc, entries: doc.entries.filter((entry) => !lifted.includes(entry)) }, null, 2)}\n`
+    )
+    run('git', ['add', file])
+  }
+
   run('git', ['commit', '-m', subject, '-m', 'The peer ranges of the packages that held it back now accept it.'])
   run('git', ['push', remoteUrl(), `HEAD:refs/heads/${branch}`])
 
@@ -1040,7 +1151,7 @@ async function policyWatch() {
     source_branch: branch,
     target_branch: 'main',
     title: subject,
-    description: `The condition of the entry is met: ${lifted.map((entry) => `${entry.package} ${entry.unblock.version} (${entry.unblock.peers.join(', ')})`).join('; ')}. It is merged when its pipeline succeeds, and the update tools take the package at their next run.`,
+    description: `The condition of the entry is met: ${all.map((entry) => `${entry.package} ${entry.unblock.version} (${entry.unblock.peers.join(', ')})`).join('; ')}. It is merged when its pipeline succeeds, and the update tools take the package at their next run.`,
     remove_source_branch: true,
     ...(await mergeRequestOptions()),
   })

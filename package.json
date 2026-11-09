@@ -89,22 +89,22 @@
   },
   "dependencies": {
     "@stanislas-poisson/js-dev-tools": "^1.1.2",
-    "eslint": "^10.13.0",
+    "eslint": "^10.14.0",
     "markdownlint-cli2": "^0.24.0",
     "prettier": "^3.9.10",
-    "semver": "^7.8.5",
+    "semver": "^7.8.6",
     "stylelint": "^17.16.0"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^5.0.5",
+    "@vitest/coverage-v8": "^5.1.0",
     "knip": "^6.44.1",
     "sort-package-json": "^4.1.0",
     "typescript": "^6.0.3",
-    "vitest": "^5.0.5",
+    "vitest": "^5.1.0",
     "zod": "^4.6.7"
   },
   "peerDependencies": {
-    "eslint": "^10.13.0",
+    "eslint": "^10.14.0",
     "typedoc": "^0.28.0",
     "zod": "^3.0.0 || ^4.0.0"
   },

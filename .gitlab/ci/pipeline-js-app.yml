@@ -28,9 +28,9 @@
 
 include:
   # All js: jobs come from pipeline-js-package.yml — no duplication.
-  - project: "zairakai/npm-packages/js-dev-tools"
+  - project: 'zairakai/npm-packages/js-dev-tools'
     ref: main
-    file: ".gitlab/ci/pipeline-js-package.yml"
+    file: '.gitlab/ci/pipeline-js-package.yml'
 
 # ================================
 # STAGES
@@ -52,7 +52,7 @@ stages:
 # ================================
 variables:
   # Default cache key for app context (overridden per project via CACHE_KEY).
-  CACHE_KEY: "zairakai-laravel-app"
+  CACHE_KEY: 'zairakai-laravel-app'
 
   # Note: GIT_CLEAN_FLAGS intentionally NOT set here.
   # pipeline-laravel-fullstack.yml sets the combined value to preserve

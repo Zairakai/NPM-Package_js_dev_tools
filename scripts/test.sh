@@ -31,9 +31,11 @@ fi
 
 if [[ "$COVERAGE" == "true" ]]; then
     log_info "Running with coverage report"
-    ensure_dir "build/coverage"
+    ensure_dir "coverage"
     ensure_dir "build/logs"
-    "$VITEST_BIN" run --coverage --passWithNoTests "${VITEST_ARGS[@]}"
+    # The JUnit file is the test report that GitLab shows in the merge request
+    "$VITEST_BIN" run --coverage --reporter=default --reporter=junit --outputFile.junit=coverage/junit.xml \
+        --passWithNoTests "${VITEST_ARGS[@]}"
 else
     "$VITEST_BIN" run --passWithNoTests "${VITEST_ARGS[@]}"
 fi

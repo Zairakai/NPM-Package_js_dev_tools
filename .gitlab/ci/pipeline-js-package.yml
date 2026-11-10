@@ -74,32 +74,32 @@ default:
 # ================================
 variables:
   # ── OVERRIDE PER PROJECT ──────────────────────────────────────────────────
-  CACHE_KEY: "zairakai-npm-package"
-  NPM_PACKAGE_NAME: "@zairakai/package"
+  CACHE_KEY: 'zairakai-npm-package'
+  NPM_PACKAGE_NAME: '@zairakai/package'
 
   # Paths to dev-tools scripts.
   # Consumer projects do NOT need to override these.
   # dev-tools itself overrides them in its own .gitlab-ci.yml.
-  JS_DEV_TOOLS_SCRIPTS: "node_modules/@zairakai/js-dev-tools/scripts"
+  JS_DEV_TOOLS_SCRIPTS: 'node_modules/@zairakai/js-dev-tools/scripts'
 
   # ── NODE ──────────────────────────────────────────────────────────────────
-  NODE_VERSION: "24"
-  NODE_IMAGE: "zairakai/node:latest-dev"
-  NODE_TEST_IMAGE: "zairakai/node:latest-test"
+  NODE_VERSION: '24'
+  NODE_IMAGE: 'zairakai/node:latest-dev'
+  NODE_TEST_IMAGE: 'zairakai/node:latest-test'
   # The jobs of the automatic updates sign with gpg: the image has it since 1.3.0. It is an exact version, published on
   # Docker Hub like our other images: the runner pulls it, whatever the old image it keeps locally.
-  NODE_UPDATE_IMAGE: "zairakai/node:1.3.0-dev"
-  SHELLCHECK_IMAGE: "koalaman/shellcheck-alpine:v0.10.0"
-  RELEASE_CLI_IMAGE: "registry.gitlab.com/gitlab-org/release-cli:v0.18.0"
-  ALPINE_IMAGE: "alpine:3.18"
+  NODE_UPDATE_IMAGE: 'zairakai/node:1.3.0-dev'
+  SHELLCHECK_IMAGE: 'koalaman/shellcheck-alpine:v0.10.0'
+  RELEASE_CLI_IMAGE: 'registry.gitlab.com/gitlab-org/release-cli:v0.18.0'
+  ALPINE_IMAGE: 'alpine:3.18'
 
   # ── GIT ───────────────────────────────────────────────────────────────────
   GIT_DEPTH: 1
   GIT_STRATEGY: fetch
-  GIT_CLEAN_FLAGS: "-ffdx -e node_modules/ -e .npm/"
+  GIT_CLEAN_FLAGS: '-ffdx -e node_modules/ -e .npm/'
 
   # ── SECURITY ──────────────────────────────────────────────────────────────
-  SECRET_DETECTION_EXCLUDED_PATHS: "node_modules/,dist/,build/,coverage/"
+  SECRET_DETECTION_EXCLUDED_PATHS: 'node_modules/,dist/,build/,coverage/'
 
 # ================================
 # ANCHORS
@@ -344,12 +344,12 @@ js:test:
   coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
   artifacts:
     reports:
-      junit: build/coverage/junit.xml
+      junit: coverage/junit.xml
       coverage_report:
         coverage_format: cobertura
-        path: build/coverage/cobertura-coverage.xml
+        path: coverage/cobertura-coverage.xml
     paths:
-      - build/coverage/
+      - coverage/
     expire_in: 1 week
     when: always
 
@@ -392,7 +392,7 @@ js:publish:
     - saas-linux-small-amd64
   id_tokens:
     NPM_ID_TOKEN:
-      aud: "npm:registry.npmjs.org"
+      aud: 'npm:registry.npmjs.org'
     # Lets npm sign the provenance: the package page shows it was built on GitLab from this project.
     SIGSTORE_ID_TOKEN:
       aud: sigstore
@@ -504,7 +504,7 @@ deps:update:
   needs: []
   script:
     - node --version
-    - "[ -d node_modules ] || npm ci --no-audit --no-fund"
+    - '[ -d node_modules ] || npm ci --no-audit --no-fund'
     - '[ "${JS_DEV_TOOLS_SCRIPTS}" = "scripts" ] || npm install --no-save --no-audit --no-fund "@zairakai/js-dev-tools@latest"'
     - node "${JS_DEV_TOOLS_SCRIPTS}/update-dependencies.mjs" update
   rules:
@@ -520,7 +520,7 @@ deps:audit:
   needs: []
   script:
     - node --version
-    - "[ -d node_modules ] || npm ci --no-audit --no-fund"
+    - '[ -d node_modules ] || npm ci --no-audit --no-fund'
     - '[ "${JS_DEV_TOOLS_SCRIPTS}" = "scripts" ] || npm install --no-save --no-audit --no-fund "@zairakai/js-dev-tools@latest"'
     - node "${JS_DEV_TOOLS_SCRIPTS}/update-dependencies.mjs" audit
   rules:
@@ -532,7 +532,7 @@ deps:release:
   stage: release
   image: ${NODE_IMAGE}
   script:
-    - "[ -d node_modules ] || npm ci --no-audit --no-fund"
+    - '[ -d node_modules ] || npm ci --no-audit --no-fund'
     - node "${JS_DEV_TOOLS_SCRIPTS}/update-dependencies.mjs" release
   rules:
     - if: $CI_COMMIT_BRANCH == "develop" && $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_MESSAGE =~ /chore\/update-dependencies/
@@ -545,7 +545,7 @@ deps:tag:
   variables:
     GIT_DEPTH: 0
   script:
-    - "[ -d node_modules ] || npm ci --no-audit --no-fund"
+    - '[ -d node_modules ] || npm ci --no-audit --no-fund'
     - node "${JS_DEV_TOOLS_SCRIPTS}/update-dependencies.mjs" tag
   rules:
     - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
@@ -558,7 +558,7 @@ deps:cascade:
   needs:
     - job: js:publish
   script:
-    - "[ -d node_modules ] || npm ci --no-audit --no-fund"
+    - '[ -d node_modules ] || npm ci --no-audit --no-fund'
     - node "${JS_DEV_TOOLS_SCRIPTS}/update-dependencies.mjs" cascade
   rules:
     - if: $CI_COMMIT_TAG =~ $VERSION_TAG_REGEX

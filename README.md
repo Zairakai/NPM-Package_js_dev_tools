@@ -1,9 +1,15 @@
-# @zairakai/js-dev-tools
+# JS Dev Tools
+
+![JS Dev Tools](https://gitlab.com/zairakai/npm-packages/js-dev-tools/-/raw/main/assets/banner.png)
+
+`@zairakai/js-dev-tools`
 
 [![Main][pipeline-main-badge]][pipeline-main-link]
 [![Develop][pipeline-develop-badge]][pipeline-develop-link]
+[![Coverage][coverage-badge]][pipeline-main-link]
 
 [![npm][npm-badge]][npm-link]
+[![Base][base-badge]][base]
 [![Docs][docs-badge]][docs]
 [![GitLab Release][gitlab-release-badge]][gitlab-release]
 [![License][license-badge]][license]
@@ -12,8 +18,10 @@
 [![ESLint][eslint-badge]][eslint]
 [![Prettier][prettier-badge]][prettier]
 [![Stylelint][stylelint-badge]][stylelint]
+[![Vitest][vitest-badge]][vitest]
+[![Knip][knip-badge]][knip]
 
-One unified toolkit to set up JavaScript/TypeScript quality tooling. Context-aware by default — it adapts to both standalone packages and full-stack applications.
+One unified toolkit to set up JavaScript/TypeScript quality tooling. Context-aware by default: it adapts to both standalone packages and full-stack applications.
 
 **Documentation: [js-dev-tools-3fa149.gitlab.io][docs]**
 
@@ -40,7 +48,7 @@ One unified toolkit to set up JavaScript/TypeScript quality tooling. Context-awa
 | **Prettier** | Opinionated formatter with SCSS and Tailwind support. |
 | **Stylelint** | SCSS linting with modern property ordering. |
 | **Markdownlint** | Consistent Markdown across all documentation. |
-| **Vitest** | Unit testing with v8 coverage. |
+| **Vitest** | Unit testing with v8 coverage: 75 % required, 90 % as the good level. |
 | **Knip** | Dead code and unused dependency detection. |
 | **TypeScript** | Shared `tsconfig.base.json` for strict mode builds. |
 | **GitLab CI** | Reusable pipeline templates for npm packages and Laravel full-stack. |
@@ -122,6 +130,22 @@ export default defineConfig({ ...baseConfig, test: { ...baseConfig.test } })
 
 ---
 
+## Tests and coverage
+
+`make test-coverage` and the job `js:test` of the pipeline run Vitest with coverage. The reports are in `coverage/`: the HTML report, `lcov.info`, `cobertura-coverage.xml` (the coverage of the merge request) and `junit.xml` (the test report of the merge request). The base requires 75 % of the lines, functions, branches and statements, and shows 90 % as the good level. A project that is below lowers the threshold in its own file, and raises it again as it adds tests:
+
+```js
+// vitest.config.js
+import baseConfig from '@zairakai/js-dev-tools/vitest'
+import { defineConfig, mergeConfig } from 'vitest/config'
+
+export default mergeConfig(baseConfig, defineConfig({ test: { coverage: { thresholds: { lines: 60 } } } }))
+```
+
+The tests do not use globals: `describe`, `it` and `expect` are imported from `vitest`. `coverage/` is ignored by Git and by the tools.
+
+---
+
 ## Publishing configs
 
 Publish individual config files to `config/dev-tools/` (never overwritten unless `--force`):
@@ -166,8 +190,8 @@ variables:
 
 Available templates:
 
-- `.gitlab/ci/pipeline-js-package.yml` — security → install → validate → quality → test → build → publish → release
-- `.gitlab/ci/pipeline-js-app.yml` — JS quality + test jobs for Laravel full-stack apps
+- `.gitlab/ci/pipeline-js-package.yml`: security → install → validate → quality → test → build → publish → release
+- `.gitlab/ci/pipeline-js-app.yml`: JS quality + test jobs for Laravel full-stack apps
 
 ---
 
@@ -204,6 +228,8 @@ make test-all         # vitest + bats
 make bats             # shell script tests only
 make doctor           # environment diagnostics
 ```
+
+`make quality` may print a Knip hint: `Remove @vitest/coverage-v8 from ignoreDependencies`. It is a hint, not an error, and the entry stays: the projects whose Vitest config names the provider as a text (`provider: 'v8'`) inherit the list, and Knip cannot link that text to the package.
 
 ---
 
@@ -246,4 +272,11 @@ make doctor           # environment diagnostics
 [ecosystem]: https://gitlab.com/zairakai
 [docs]: https://js-dev-tools-3fa149.gitlab.io
 [docs-badge]: https://img.shields.io/badge/docs-online-blue
+[coverage-badge]: https://gitlab.com/zairakai/npm-packages/js-dev-tools/badges/main/coverage.svg?job=js:test&key_text=Coverage
+[base-badge]: https://img.shields.io/npm/dependency-version/@zairakai/js-dev-tools/@stanislas-poisson/js-dev-tools?label=base
+[base]: https://github.com/Stanislas-Poisson/js-dev-tools
+[vitest-badge]: https://img.shields.io/badge/test-vitest-6E9F18.svg?logo=vitest
+[vitest]: https://vitest.dev
+[knip-badge]: https://img.shields.io/badge/dead%20code-knip-EC4899.svg
+[knip]: https://knip.dev
 [stats-card]: https://gitlab.com/zairakai/gitlab-profile/-/raw/main/assets/projects/js-dev-tools.svg

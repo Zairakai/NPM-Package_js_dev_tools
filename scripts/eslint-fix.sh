@@ -11,13 +11,13 @@ log_header "ESLint Fix"
 ensure_bin "$ESLINT_BIN" "eslint" || exit 1
 
 if [[ -n "$ESLINT_CONFIG" ]]; then
-    log_step "Using configuration: ${ESLINT_CONFIG#"$PROJECT_ROOT"/}"
+  log_step "Using configuration: ${ESLINT_CONFIG#"$PROJECT_ROOT"/}"
 fi
 
 if [[ "$PROJECT_TYPE" == "laravel-app" ]]; then
-    LINT_TARGET="${LINT_TARGET:-resources/js/}"
+  LINT_TARGET="${LINT_TARGET:-resources/js/}"
 else
-    LINT_TARGET="${LINT_TARGET:-src/}"
+  LINT_TARGET="${LINT_TARGET:-src/}"
 fi
 
 log_step "Fixing: $LINT_TARGET"
@@ -34,14 +34,14 @@ LINT_TARGET_GLOB_BASE="${LINT_TARGET%/}/"
 # doc comment in config.sh — brace expansion never applies to quoted text or
 # to the contents of a variable).
 if ! has_files "${PROJECT_ROOT}/${LINT_TARGET_GLOB_BASE}"**/*.{js,ts,vue,jsx,tsx}; then
-    log_info "No JS/TS files found in ${LINT_TARGET} — skipping"
-    exit 0
+  log_info "No JS/TS files found in ${LINT_TARGET} — skipping"
+  exit 0
 fi
 
 ESLINT_ARGS=(--fix)
 
 if [[ -n "$ESLINT_CONFIG" ]] && [[ "$ESLINT_CONFIG" != "${PROJECT_ROOT}/eslint.config.js" ]]; then
-    ESLINT_ARGS+=(--config "$ESLINT_CONFIG")
+  ESLINT_ARGS+=(--config "$ESLINT_CONFIG")
 fi
 
 "$ESLINT_BIN" "${ESLINT_ARGS[@]}" "$LINT_TARGET"

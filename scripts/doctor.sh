@@ -32,24 +32,24 @@ echo -e "${CYAN}Available Tools:${NC}"
 echo ""
 echo -e "${CYAN}CI/CD Detection:${NC}"
 if [[ "$IS_CI" == "true" ]]; then
-    echo "  ✅ Running in CI environment"
-    [[ "$IS_GITLAB_CI" == "true" ]]      && echo "  → Platform: GitLab CI"
-    [[ "$IS_GITHUB_ACTIONS" == "true" ]] && echo "  → Platform: GitHub Actions"
+  echo "  ✅ Running in CI environment"
+  [[ "$IS_GITLAB_CI" == "true" ]]      && echo "  → Platform: GitLab CI"
+  [[ "$IS_GITHUB_ACTIONS" == "true" ]] && echo "  → Platform: GitHub Actions"
 else
-    echo "  ℹ️  Local development environment"
+  echo "  ℹ️  Local development environment"
 fi
 
 echo ""
 echo -e "${CYAN}Configuration Files (resolved):${NC}"
 
 show_config() {
-    local label="$1"
-    local value="$2"
-    if [[ -n "$value" ]] && [[ -f "$value" ]]; then
-        echo "  ✅ ${label}: ${value#"$PROJECT_ROOT"/}"
-    else
-        echo "  ℹ️  ${label}: Using defaults (no config file)"
-    fi
+  local label="$1"
+  local value="$2"
+  if [[ -n "$value" ]] && [[ -f "$value" ]]; then
+    echo "  ✅ ${label}: ${value#"$PROJECT_ROOT"/}"
+  else
+    echo "  ℹ️  ${label}: Using defaults (no config file)"
+  fi
 }
 
 show_config "ESLint"       "$ESLINT_CONFIG"

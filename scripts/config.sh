@@ -9,11 +9,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Vendor context: node_modules/@zairakai/js-dev-tools/scripts/
 # Dev context:    npm/dev-tools/scripts/
 if [[ "$SCRIPT_DIR" =~ /node_modules/@zairakai/js-dev-tools/scripts ]]; then
-    PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
-    DEV_TOOLS_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+  PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+  DEV_TOOLS_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 else
-    PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-    DEV_TOOLS_ROOT="$PROJECT_ROOT"
+  PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+  DEV_TOOLS_ROOT="$PROJECT_ROOT"
 fi
 
 export PROJECT_ROOT
@@ -21,11 +21,11 @@ export DEV_TOOLS_ROOT
 
 # ─── PACKAGE MANAGER DETECTION ────────────────────────────────────────────────
 detect_package_manager() {
-    if [[ -f "$PROJECT_ROOT/yarn.lock" ]] || [[ -f "$PROJECT_ROOT/.yarnrc.yml" ]]; then
-        echo "yarn"
-    else
-        echo "npm"
-    fi
+  if [[ -f "$PROJECT_ROOT/yarn.lock" ]] || [[ -f "$PROJECT_ROOT/.yarnrc.yml" ]]; then
+    echo "yarn"
+  else
+    echo "npm"
+  fi
 }
 
 PM="$(detect_package_manager)"
@@ -33,11 +33,11 @@ export PM
 
 # ─── PROJECT TYPE DETECTION ───────────────────────────────────────────────────
 detect_project_type() {
-    if [[ -f "${PROJECT_ROOT}/artisan" ]] && [[ -d "${PROJECT_ROOT}/resources/js" ]]; then
-        echo "laravel-app"
-        return 0
-    fi
-    echo "npm-package"
+  if [[ -f "${PROJECT_ROOT}/artisan" ]] && [[ -d "${PROJECT_ROOT}/resources/js" ]]; then
+    echo "laravel-app"
+    return 0
+  fi
+  echo "npm-package"
 }
 
 PROJECT_TYPE="$(detect_project_type)"
@@ -59,40 +59,40 @@ export PROJECT_TYPE
 DEV_TOOLS_DOCKER_ENV_VARS=(CI COVERAGE)
 
 maybe_dockerize() {
-    local script_path="$1"
-    shift
+  local script_path="$1"
+  shift
 
-    # Already running inside a container — nothing to dispatch.
-    [[ -f /.dockerenv ]] && return 0
+  # Already running inside a container — nothing to dispatch.
+  [[ -f /.dockerenv ]] && return 0
 
-    # Explicit opt-out.
-    [[ "${DEV_TOOLS_NO_DOCKER:-false}" == "true" ]] && return 0
+  # Explicit opt-out.
+  [[ "${DEV_TOOLS_NO_DOCKER:-false}" == "true" ]] && return 0
 
-    # CI runners execute inside a single job image, not this dev compose stack.
-    [[ "${CI:-false}" == "true" || "${GITLAB_CI:-false}" == "true" ]] && return 0
+  # CI runners execute inside a single job image, not this dev compose stack.
+  [[ "${CI:-false}" == "true" || "${GITLAB_CI:-false}" == "true" ]] && return 0
 
-    command -v docker >/dev/null 2>&1 || return 0
-    [[ -f "${PROJECT_ROOT}/docker-compose.yml" ]] || return 0
+  command -v docker >/dev/null 2>&1 || return 0
+  [[ -f "${PROJECT_ROOT}/docker-compose.yml" ]] || return 0
 
-    local service="${DEV_TOOLS_NODE_SERVICE:-node}"
-    local mount="${DEV_TOOLS_NODE_SERVICE_MOUNT:-/app}"
+  local service="${DEV_TOOLS_NODE_SERVICE:-node}"
+  local mount="${DEV_TOOLS_NODE_SERVICE_MOUNT:-/app}"
 
-    # Only dispatch when the target service is already running — never start
-    # it as a side effect of running a quality check.
-    if ! (cd "$PROJECT_ROOT" && docker compose ps --status running --services 2>/dev/null | grep -qx "$service"); then
-        return 0
-    fi
+  # Only dispatch when the target service is already running — never start
+  # it as a side effect of running a quality check.
+  if ! (cd "$PROJECT_ROOT" && docker compose ps --status running --services 2>/dev/null | grep -qx "$service"); then
+    return 0
+  fi
 
-    local rel_script="${script_path#"${PROJECT_ROOT}"/}"
-    local env_flags=()
-    local var
-    for var in "${DEV_TOOLS_DOCKER_ENV_VARS[@]}"; do
-        [[ -n "${!var:-}" ]] && env_flags+=(-e "$var")
-    done
+  local rel_script="${script_path#"${PROJECT_ROOT}"/}"
+  local env_flags=()
+  local var
+  for var in "${DEV_TOOLS_DOCKER_ENV_VARS[@]}"; do
+    [[ -n "${!var:-}" ]] && env_flags+=(-e "$var")
+  done
 
-    log_step "Dispatching to '${service}' container..."
-    cd "$PROJECT_ROOT"
-    exec docker compose exec -T "${env_flags[@]}" "$service" bash "${mount}/${rel_script}" "$@"
+  log_step "Dispatching to '${service}' container..."
+  cd "$PROJECT_ROOT"
+  exec docker compose exec -T "${env_flags[@]}" "$service" bash "${mount}/${rel_script}" "$@"
 }
 export -f maybe_dockerize
 
@@ -107,33 +107,33 @@ export MARKDOWNLINT_BIN="${BIN_DIR}/markdownlint-cli2"
 # ─── CONFIG RESOLUTION ────────────────────────────────────────────────────────
 # Cascade: project root → config/dev-tools/ → config/ → bundled default
 resolve_config() {
-    local filename="$1"
+  local filename="$1"
 
-    # 1. Project root (full override)
-    if [[ -f "${PROJECT_ROOT}/${filename}" ]]; then
-        echo "${PROJECT_ROOT}/${filename}"
-        return 0
-    fi
+  # 1. Project root (full override)
+  if [[ -f "${PROJECT_ROOT}/${filename}" ]]; then
+    echo "${PROJECT_ROOT}/${filename}"
+    return 0
+  fi
 
-    # 2. config/dev-tools/ (published — can extend bundled default)
-    if [[ -f "${PROJECT_ROOT}/config/dev-tools/${filename}" ]]; then
-        echo "${PROJECT_ROOT}/config/dev-tools/${filename}"
-        return 0
-    fi
+  # 2. config/dev-tools/ (published — can extend bundled default)
+  if [[ -f "${PROJECT_ROOT}/config/dev-tools/${filename}" ]]; then
+    echo "${PROJECT_ROOT}/config/dev-tools/${filename}"
+    return 0
+  fi
 
-    # 3. config/ (local usage or internal package structure)
-    if [[ -f "${PROJECT_ROOT}/config/${filename}" ]]; then
-        echo "${PROJECT_ROOT}/config/${filename}"
-        return 0
-    fi
+  # 3. config/ (local usage or internal package structure)
+  if [[ -f "${PROJECT_ROOT}/config/${filename}" ]]; then
+    echo "${PROJECT_ROOT}/config/${filename}"
+    return 0
+  fi
 
-    # 4. Bundled default in dev-tools package (fallback when in node_modules)
-    if [[ -f "${DEV_TOOLS_ROOT}/config/${filename}" ]]; then
-        echo "${DEV_TOOLS_ROOT}/config/${filename}"
-        return 0
-    fi
+  # 4. Bundled default in dev-tools package (fallback when in node_modules)
+  if [[ -f "${DEV_TOOLS_ROOT}/config/${filename}" ]]; then
+    echo "${DEV_TOOLS_ROOT}/config/${filename}"
+    return 0
+  fi
 
-    echo ""
+  echo ""
 }
 
 export -f resolve_config
@@ -164,24 +164,24 @@ export -f log_header
 
 # ─── BINARY CHECKS ────────────────────────────────────────────────────────────
 ensure_bin() {
-    local bin="$1"
-    local name="${2:-$(basename "$bin")}"
-    if [[ ! -f "$bin" ]]; then
-        log_error "${name} not found in node_modules/.bin/"
-        log_error "Run: ${PM} install"
-        return 1
-    fi
+  local bin="$1"
+  local name="${2:-$(basename "$bin")}"
+  if [[ ! -f "$bin" ]]; then
+    log_error "${name} not found in node_modules/.bin/"
+    log_error "Run: ${PM} install"
+    return 1
+  fi
 }
 export -f ensure_bin
 
 ensure_bin_optional() {
-    local bin="$1"
-    local name="${2:-$(basename "$bin")}"
-    if [[ ! -f "$bin" ]]; then
-        log_warning "${name} not installed — skipping (optional)"
-        return 1
-    fi
-    return 0
+  local bin="$1"
+  local name="${2:-$(basename "$bin")}"
+  if [[ ! -f "$bin" ]]; then
+    log_warning "${name} not installed — skipping (optional)"
+    return 1
+  fi
+  return 0
 }
 export -f ensure_bin_optional
 
@@ -195,15 +195,15 @@ export -f ensure_bin_optional
 # pattern like "**/*.{js,ts}" passed as a single quoted string is matched
 # literally (and never matches a real file) instead of being expanded.
 has_files() {
-    local pattern
-    for pattern in "$@"; do
-        # SC2086: unquoted intentionally — we need word splitting + glob expansion via nullglob+globstar
-        # shellcheck disable=SC2086
-        if ( shopt -s nullglob globstar; set -- $pattern; [ $# -gt 0 ] ); then
-            return 0
-        fi
-    done
-    return 1
+  local pattern
+  for pattern in "$@"; do
+    # SC2086: unquoted intentionally — we need word splitting + glob expansion via nullglob+globstar
+    # shellcheck disable=SC2086
+    if ( shopt -s nullglob globstar; set -- $pattern; [ $# -gt 0 ] ); then
+      return 0
+    fi
+  done
+  return 1
 }
 export -f has_files
 
@@ -215,14 +215,14 @@ increment_error_counter() { ERROR_COUNT=$((ERROR_COUNT + 1)); }
 get_error_count()         { echo "$ERROR_COUNT"; }
 
 exit_with_error_count() {
-    local name="${1:-Checks}"
-    if [[ $ERROR_COUNT -eq 0 ]]; then
-        log_header "✅ All ${name} Passed"
-        return 0
-    else
-        log_header "❌ ${ERROR_COUNT} ${name} Failed"
-        return 1
-    fi
+  local name="${1:-Checks}"
+  if [[ $ERROR_COUNT -eq 0 ]]; then
+    log_header "✅ All ${name} Passed"
+    return 0
+  else
+    log_header "❌ ${ERROR_COUNT} ${name} Failed"
+    return 1
+  fi
 }
 
 export -f init_error_counter
@@ -231,53 +231,53 @@ export -f get_error_count
 export -f exit_with_error_count
 
 run_check() {
-    local name="$1"
-    local cmd="$2"
-    log_info "Running: ${name}"
-    if eval "$cmd"; then
-        log_success "${name} passed"
-    else
-        log_error "${name} failed"
-        increment_error_counter
-        return 1
-    fi
+  local name="$1"
+  local cmd="$2"
+  log_info "Running: ${name}"
+  if eval "$cmd"; then
+    log_success "${name} passed"
+  else
+    log_error "${name} failed"
+    increment_error_counter
+    return 1
+  fi
 }
 
 # ─── BACKUP ──────────────────────────────────────────────────────────────────
 BACKUP_DIR=""
 backup_file() {
-    local file="$1"
-    local base="${2:-${PROJECT_ROOT}/.dev-tools-backup}"
-    [[ ! -f "$file" || -L "$file" ]] && return 1
-    if [[ -z "$BACKUP_DIR" ]]; then
-        BACKUP_DIR="${base}/$(date +%Y%m%d-%H%M%S)"
-        mkdir -p "$BACKUP_DIR"
-    fi
-    local rel="${file#"${PROJECT_ROOT}"/}"
-    local dest="${BACKUP_DIR}/${rel}"
-    mkdir -p "$(dirname "$dest")"
-    cp "$file" "$dest" 2>/dev/null
+  local file="$1"
+  local base="${2:-${PROJECT_ROOT}/.dev-tools-backup}"
+  [[ ! -f "$file" || -L "$file" ]] && return 1
+  if [[ -z "$BACKUP_DIR" ]]; then
+    BACKUP_DIR="${base}/$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "$BACKUP_DIR"
+  fi
+  local rel="${file#"${PROJECT_ROOT}"/}"
+  local dest="${BACKUP_DIR}/${rel}"
+  mkdir -p "$(dirname "$dest")"
+  cp "$file" "$dest" 2>/dev/null
 }
 
 # ─── HELPERS ──────────────────────────────────────────────────────────────────
 command_exists() { command -v "$1" >/dev/null 2>&1; }
 ensure_dir() {
-    if [[ ! -d "$1" ]]; then
-        mkdir -p "$1"
-        log_step "Created directory: $1"
-    fi
+  if [[ ! -d "$1" ]]; then
+    mkdir -p "$1"
+    log_step "Created directory: $1"
+  fi
 }
 
 # ─── FILE PROTECTION (SHA-256) ────────────────────────────────────────────────
 file_hash() {
-    local file="$1"
-    if command_exists sha256sum; then
-        sha256sum "$file" | cut -d' ' -f1
-    elif command_exists shasum; then
-        shasum -a 256 "$file" | cut -d' ' -f1
-    else
-        echo ""
-    fi
+  local file="$1"
+  if command_exists sha256sum; then
+    sha256sum "$file" | cut -d' ' -f1
+  elif command_exists shasum; then
+    shasum -a 256 "$file" | cut -d' ' -f1
+  else
+    echo ""
+  fi
 }
 
 # ─── ENVIRONMENT DETECTION ────────────────────────────────────────────────────
@@ -315,6 +315,6 @@ export TSUP_CONFIG
 cd "$PROJECT_ROOT"
 
 if [[ ! -d "${PROJECT_ROOT}/node_modules" ]]; then
-    log_error "Dependencies not installed. Run: ${PM} install"
-    exit 1
+  log_error "Dependencies not installed. Run: ${PM} install"
+  exit 1
 fi

@@ -2,7 +2,7 @@
 # PIPELINE TEMPLATE - Laravel App JS/Frontend
 # ================================
 # Provides JS/Frontend CI jobs for a Laravel application.
-# Includes the files of js/ that an application needs (base, security, quality, updates) and none of what only a
+# Includes the files of this folder that an application needs (base, security, quality, updates) and none of what only a
 # package does (build, publish, release, documentation, cascade): nothing to disable.
 #
 # PHP jobs come from laravel-dev-tools (pipeline-laravel-app.yml).
@@ -27,10 +27,10 @@
 # ================================
 
 include:
-  - local: '.gitlab/ci/js/base.yml'
-  - local: '.gitlab/ci/js/security.yml'
-  - local: '.gitlab/ci/js/quality.yml'
-  - local: '.gitlab/ci/js/updates.yml'
+  - local: '.gitlab/ci/base.yml'
+  - local: '.gitlab/ci/security.yml'
+  - local: '.gitlab/ci/quality.yml'
+  - local: '.gitlab/ci/updates.yml'
 
 # ================================
 # STAGES

@@ -10,7 +10,7 @@
 # jobs when this template is combined with other templates.
 #
 # USAGE in a consumer project:
-# ─────────────────────────────────────────
+# ================
 #   include:
 #     - project: 'zairakai/npm-packages/js-dev-tools'
 #       ref: main
@@ -21,7 +21,7 @@
 #     NPM_PACKAGE_NAME: "@myorg/my-package"
 #
 # FOR dev-tools ITSELF (self-hosted mode):
-# ─────────────────────────────────────────────────────
+# ================
 #   include:
 #     - local: '.gitlab/ci/pipeline-js-package.yml'
 #
@@ -53,6 +53,7 @@ stages:
 # VARIABLES
 # ================
 variables:
-  # ── OVERRIDE PER PROJECT ──────────────────────────────────────────────────
+  # OVERRIDE PER PROJECT
+  # ================
   CACHE_KEY: 'zairakai-npm-package'
   NPM_PACKAGE_NAME: '@zairakai/package'

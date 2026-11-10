@@ -8,14 +8,14 @@
 # All js: job names never conflict with php: job names.
 #
 # Fullstack usage (recommended - single include):
-# ─────────────────────────────────────────────────────
+# ================
 #   include:
 #     - project: 'zairakai/php-packages/laravel-dev-tools'
 #       ref: main
 #       file: '.gitlab/ci/pipeline-laravel-fullstack.yml'
 #
 # Standalone usage (JS side only, alongside a custom PHP pipeline):
-# ─────────────────────────────────────────────────────
+# ================
 #   include:
 #     - project: 'zairakai/npm-packages/js-dev-tools'
 #       ref: main

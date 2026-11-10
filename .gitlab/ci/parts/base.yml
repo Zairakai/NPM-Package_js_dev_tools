@@ -31,7 +31,8 @@ variables:
   # dev-tools itself overrides them in its own .gitlab-ci.yml.
   JS_DEV_TOOLS_SCRIPTS: 'node_modules/@zairakai/js-dev-tools/scripts'
 
-  # ── NODE ──────────────────────────────────────────────────────────────────
+  # NODE
+  # ================
   NODE_VERSION: '24'
   NODE_IMAGE: 'zairakai/node:latest-dev'
   NODE_TEST_IMAGE: 'zairakai/node:latest-test'
@@ -42,12 +43,14 @@ variables:
   RELEASE_CLI_IMAGE: 'registry.gitlab.com/gitlab-org/release-cli:v0.18.0'
   ALPINE_IMAGE: 'alpine:3.18'
 
-  # ── GIT ───────────────────────────────────────────────────────────────────
+  # GIT
+  # ================
   GIT_DEPTH: 1
   GIT_STRATEGY: fetch
   GIT_CLEAN_FLAGS: '-ffdx -e node_modules/ -e .npm/'
 
-  # ── SECURITY ──────────────────────────────────────────────────────────────
+  # SECURITY
+  # ================
   SECRET_DETECTION_EXCLUDED_PATHS: 'node_modules/,vendor/,dist/,build/,coverage/,docs/,public/,storage/,.nuxt/,.output/,storybook-static/'
 
 # HIDDEN JOBS

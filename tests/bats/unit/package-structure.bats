@@ -15,9 +15,8 @@ teardown() {
     teardown_test_env
 }
 
-# ============================================================================
 # scripts/
-# ============================================================================
+# ================
 
 @test "scripts/config.sh exists" {
     assert_file_exists "${PROJECT_ROOT}/scripts/config.sh"
@@ -99,9 +98,8 @@ teardown() {
     assert_file_exists "${PROJECT_ROOT}/scripts/doctor.sh"
 }
 
-# ============================================================================
 # scripts/ - shebang check
-# ============================================================================
+# ================
 
 @test "all scripts have correct shebang" {
     local failed=0
@@ -116,9 +114,8 @@ teardown() {
     [ "$failed" -eq 0 ]
 }
 
-# ============================================================================
 # config/
-# ============================================================================
+# ================
 
 @test "LICENSE exists" {
     assert_file_exists "${PROJECT_ROOT}/LICENSE"
@@ -160,9 +157,8 @@ teardown() {
     assert_file_exists "${PROJECT_ROOT}/config/.markdownlintignore"
 }
 
-# ============================================================================
 # stubs/
-# ============================================================================
+# ================
 
 @test "stubs/quality/eslint.config.js.stub exists" {
     assert_file_exists "${PROJECT_ROOT}/stubs/quality/eslint.config.js.stub"
@@ -212,9 +208,8 @@ teardown() {
     assert_file_exists "${PROJECT_ROOT}/stubs/githooks/pre-push"
 }
 
-# ============================================================================
 # tools/make/
-# ============================================================================
+# ================
 
 @test "tools/make/core.mk exists" {
     assert_file_exists "${PROJECT_ROOT}/tools/make/core.mk"
@@ -272,9 +267,8 @@ teardown() {
     assert_file_exists "${PROJECT_ROOT}/config/tsconfig.base.json"
 }
 
-# ============================================================================
 # .gitlab/ci/
-# ============================================================================
+# ================
 
 @test ".gitlab/ci/pipeline-js-package.yml exists" {
     assert_file_exists "${PROJECT_ROOT}/.gitlab/ci/pipeline-js-package.yml"
@@ -284,9 +278,8 @@ teardown() {
     assert_file_exists "${PROJECT_ROOT}/.gitlab/ci/pipeline-js-app.yml"
 }
 
-# ============================================================================
 # package.json - files[] declaration
-# ============================================================================
+# ================
 
 @test "package.json includes config/ in files[]" {
     run grep -q '"config/"' "${PROJECT_ROOT}/package.json"

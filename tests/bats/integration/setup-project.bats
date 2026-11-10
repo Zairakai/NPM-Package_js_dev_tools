@@ -15,9 +15,8 @@ teardown() {
     teardown_test_env
 }
 
-# ============================================================================
 # --help
-# ============================================================================
+# ================
 
 @test "setup-project.sh --help outputs usage information" {
     run bash "${SCRIPT_DIR}/setup-project.sh" --help
@@ -41,9 +40,8 @@ teardown() {
     [[ "$output" =~ "gitlab-ci" ]]
 }
 
-# ============================================================================
 # Unknown option
-# ============================================================================
+# ================
 
 @test "setup-project.sh exits 1 on unknown option" {
     run bash "${SCRIPT_DIR}/setup-project.sh" --invalid-option
@@ -51,9 +49,8 @@ teardown() {
     [[ "$output" =~ "Unknown option" ]] || [[ "$output" =~ "ERROR" ]]
 }
 
-# ============================================================================
 # Running inside js-dev-tools itself (source and target are the same file)
-# ============================================================================
+# ================
 
 @test "setup-project.sh in CI mode keeps .editorconfig when run inside js-dev-tools itself" {
     local self_dir="${TEST_TEMP_DIR}/self"
@@ -68,9 +65,8 @@ teardown() {
     assert_file_exists "${self_dir}/.editorconfig"
 }
 
-# ============================================================================
 # Script structure checks
-# ============================================================================
+# ================
 
 @test "setup-project.sh sources config.sh" {
     run grep -q "source.*config.sh" "${SCRIPT_DIR}/setup-project.sh"
@@ -147,9 +143,8 @@ teardown() {
     [ "$status" -eq 0 ]
 }
 
-# ============================================================================
 # --publish=eslint (in fake project context)
-# ============================================================================
+# ================
 
 @test "setup-project.sh --publish=eslint creates config/dev-tools/eslint.config.js" {
     cd "$FAKE_PROJECT"
@@ -188,9 +183,8 @@ teardown() {
     assert_file_exists "${FAKE_PROJECT}/config/dev-tools/.markdownlintignore"
 }
 
-# ============================================================================
 # --publish=all
-# ============================================================================
+# ================
 
 @test "setup-project.sh --publish creates all config files" {
     cd "$FAKE_PROJECT"
@@ -206,18 +200,16 @@ teardown() {
     assert_file_exists "${FAKE_PROJECT}/tsconfig.json"
 }
 
-# ============================================================================
 # Helper - simulate a Laravel app project
-# ============================================================================
+# ================
 
 setup_fake_laravel_project() {
     touch "${FAKE_PROJECT}/artisan"
     mkdir -p "${FAKE_PROJECT}/resources/js"
 }
 
-# ============================================================================
 # --publish=gitlab-ci (npm-package type - default fake project)
-# ============================================================================
+# ================
 
 @test "setup-project.sh --publish=gitlab-ci creates .gitlab-ci.yml for npm-package" {
     cd "$FAKE_PROJECT"
@@ -243,9 +235,8 @@ setup_fake_laravel_project() {
     [ "$status" -eq 0 ]
 }
 
-# ============================================================================
 # --publish=gitlab-ci (laravel-app type - fake project with artisan)
-# ============================================================================
+# ================
 
 @test "setup-project.sh --publish=gitlab-ci creates .gitlab/pipeline-js-app.yml for laravel-app" {
     setup_fake_laravel_project
@@ -293,9 +284,8 @@ setup_fake_laravel_project() {
     [ "$count" -eq 1 ]
 }
 
-# ============================================================================
 # --force
-# ============================================================================
+# ================
 
 @test "--force overwrites an existing published file" {
     cd "$FAKE_PROJECT"
@@ -314,9 +304,8 @@ setup_fake_laravel_project() {
     [ "$status" -ne 0 ]
 }
 
-# ============================================================================
 # ci-quality.sh - structure checks
-# ============================================================================
+# ================
 
 @test "ci-quality.sh uses error counter pattern" {
     run grep -q "init_error_counter" "${SCRIPT_DIR}/ci-quality.sh"

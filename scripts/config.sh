@@ -3,7 +3,8 @@
 
 set -euo pipefail
 
-# ─── PATH DETECTION ───────────────────────────────────────────────────────────
+# PATH DETECTION
+# ================
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Vendor context: node_modules/@zairakai/js-dev-tools/scripts/
@@ -19,7 +20,8 @@ fi
 export PROJECT_ROOT
 export DEV_TOOLS_ROOT
 
-# ─── PACKAGE MANAGER DETECTION ────────────────────────────────────────────────
+# PACKAGE MANAGER DETECTION
+# ================
 detect_package_manager() {
     if [[ -f "$PROJECT_ROOT/yarn.lock" ]] || [[ -f "$PROJECT_ROOT/.yarnrc.yml" ]]; then
         echo "yarn"
@@ -31,7 +33,8 @@ detect_package_manager() {
 PM="$(detect_package_manager)"
 export PM
 
-# ─── PROJECT TYPE DETECTION ───────────────────────────────────────────────────
+# PROJECT TYPE DETECTION
+# ================
 detect_project_type() {
     if [[ -f "${PROJECT_ROOT}/artisan" ]] && [[ -d "${PROJECT_ROOT}/resources/js" ]]; then
         echo "laravel-app"
@@ -43,7 +46,8 @@ detect_project_type() {
 PROJECT_TYPE="$(detect_project_type)"
 export PROJECT_TYPE
 
-# ─── DOCKER AUTO-DISPATCH ──────────────────────────────────────────────────────
+# DOCKER AUTO-DISPATCH
+# ================
 # Tool scripts that need a real Node runtime (eslint, prettier, stylelint, knip,
 # tsc/vue-tsc, vitest, npm outdated) call maybe_dockerize right after sourcing
 # this file. When a docker-compose stack is already running for this project,
@@ -96,7 +100,8 @@ maybe_dockerize() {
 }
 export -f maybe_dockerize
 
-# ─── BINARY PATHS ─────────────────────────────────────────────────────────────
+# BINARY PATHS
+# ================
 BIN_DIR="${PROJECT_ROOT}/node_modules/.bin"
 export ESLINT_BIN="${BIN_DIR}/eslint"
 export PRETTIER_BIN="${BIN_DIR}/prettier"
@@ -104,7 +109,8 @@ export STYLELINT_BIN="${BIN_DIR}/stylelint"
 export VITEST_BIN="${BIN_DIR}/vitest"
 export MARKDOWNLINT_BIN="${BIN_DIR}/markdownlint-cli2"
 
-# ─── CONFIG RESOLUTION ────────────────────────────────────────────────────────
+# CONFIG RESOLUTION
+# ================
 # Cascade: project root → config/dev-tools/ → config/ → bundled default
 resolve_config() {
     local filename="$1"
@@ -138,7 +144,8 @@ resolve_config() {
 
 export -f resolve_config
 
-# ─── COLORS ───────────────────────────────────────────────────────────────────
+# COLORS
+# ================
 export RED='\033[0;31m'
 export GREEN='\033[0;32m'
 export YELLOW='\033[1;33m'
@@ -147,7 +154,8 @@ export CYAN='\033[0;36m'
 export MAGENTA='\033[0;35m'
 export NC='\033[0m'
 
-# ─── LOGGING ──────────────────────────────────────────────────────────────────
+# LOGGING
+# ================
 log_info()    { echo -e "${CYAN}ℹ ${NC}$*"; }
 log_success() { echo -e "${GREEN}✅ ${NC}$*"; }
 log_warning() { echo -e "${YELLOW}⚠️  ${NC}$*"; }
@@ -162,7 +170,8 @@ export -f log_error
 export -f log_step
 export -f log_header
 
-# ─── BINARY CHECKS ────────────────────────────────────────────────────────────
+# BINARY CHECKS
+# ================
 ensure_bin() {
     local bin="$1"
     local name="${2:-$(basename "$bin")}"
@@ -207,7 +216,8 @@ has_files() {
 }
 export -f has_files
 
-# ─── ERROR COUNTER ────────────────────────────────────────────────────────────
+# ERROR COUNTER
+# ================
 ERROR_COUNT=0
 export ERROR_COUNT
 init_error_counter()      { ERROR_COUNT=0; }
@@ -243,7 +253,8 @@ run_check() {
     fi
 }
 
-# ─── BACKUP ──────────────────────────────────────────────────────────────────
+# BACKUP
+# ================
 BACKUP_DIR=""
 backup_file() {
     local file="$1"
@@ -259,7 +270,8 @@ backup_file() {
     cp "$file" "$dest" 2>/dev/null
 }
 
-# ─── HELPERS ──────────────────────────────────────────────────────────────────
+# HELPERS
+# ================
 command_exists() { command -v "$1" >/dev/null 2>&1; }
 ensure_dir() {
     if [[ ! -d "$1" ]]; then
@@ -268,7 +280,8 @@ ensure_dir() {
     fi
 }
 
-# ─── FILE PROTECTION (SHA-256) ────────────────────────────────────────────────
+# FILE PROTECTION (SHA-256)
+# ================
 file_hash() {
     local file="$1"
     if command_exists sha256sum; then
@@ -280,12 +293,14 @@ file_hash() {
     fi
 }
 
-# ─── ENVIRONMENT DETECTION ────────────────────────────────────────────────────
+# ENVIRONMENT DETECTION
+# ================
 export IS_CI="${CI:-false}"
 export IS_GITLAB_CI="${GITLAB_CI:-false}"
 export IS_GITHUB_ACTIONS="${GITHUB_ACTIONS:-false}"
 
-# ─── TOOL CONFIG RESOLUTION ───────────────────────────────────────────────────
+# TOOL CONFIG RESOLUTION
+# ================
 # Pre-resolved at startup so individual scripts don't call resolve_config themselves.
 ESLINT_CONFIG="$(resolve_config "eslint.config.js")"
 export ESLINT_CONFIG
@@ -311,7 +326,8 @@ export KNIP_CONFIG
 TSUP_CONFIG="$(resolve_config "tsup.config.js")"
 export TSUP_CONFIG
 
-# ─── VALIDATION ───────────────────────────────────────────────────────────────
+# VALIDATION
+# ================
 cd "$PROJECT_ROOT"
 
 if [[ ! -d "${PROJECT_ROOT}/node_modules" ]]; then

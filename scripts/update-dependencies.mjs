@@ -502,7 +502,7 @@ export function advisoryIssueBody(row, pipelineUrl, autoFix) {
   ].join('\n')
 }
 
-// ---------------------------------------------------------------------------------------------------------------------
+// ================
 
 const log = (message) => console.info(message)
 
@@ -672,7 +672,7 @@ function ncu(args) {
   return run('npx', ['--yes', 'npm-check-updates', '--target', 'minor', ...args, '-u'])
 }
 
-// ---------------------------------------------------------------------------------------------------------------------
+// ================
 
 /** Raise the overrides that pin a vulnerable version, then install. Returns the raised ones. */
 function raiseVulnerableOverrides() {
@@ -939,7 +939,7 @@ async function cascade(config) {
   }
 }
 
-// ---------------------------------------------------------------------------------------------------------------------
+// ================
 
 async function issueExists(title, token) {
   const query = new URLSearchParams({ state: 'opened', search: title, in: 'title' })

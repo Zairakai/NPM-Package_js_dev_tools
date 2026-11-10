@@ -22,16 +22,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/config.sh"
 
-# ============================================================================
 # CI Mode Detection - delegates to IS_CI exported by config.sh
-# ============================================================================
+# ================
 CI_MODE="$IS_CI"
 
-# ============================================================================
 # Publishable configs registry
+# ================
 # Format: [key]="source_relative_to_dev_tools|target_relative_to_project|group"
 # Note: gitlab-ci has a special handler (auto-detects project type) - not in this registry.
-# ============================================================================
 
 declare -A PUBLISHABLE=(
     ["eslint"]="stubs/quality/eslint.config.js.stub|config/dev-tools/eslint.config.js|quality"
@@ -56,9 +54,8 @@ declare -A PUBLISH_GROUPS=(
     ["all"]="eslint knip prettier stylelint prettierignore stylelintignore markdownlint markdownlintignore vitest tsconfig hooks"
 )
 
-# ============================================================================
 # Argument Parsing
-# ============================================================================
+# ================
 
 FORCE_OVERWRITE=false
 SILENT_MODE=false
@@ -122,9 +119,8 @@ for arg in "$@"; do
     esac
 done
 
-# ============================================================================
 # Silent Mode Override
-# ============================================================================
+# ================
 
 if [[ "$SILENT_MODE" == "true" ]]; then
     log_header()  { :; }
@@ -134,10 +130,9 @@ if [[ "$SILENT_MODE" == "true" ]]; then
     log_warning() { :; }
 fi
 
-# ============================================================================
 # Optional Dependencies Check
+# ================
 # Runs after setup - shows informative messages even in silent mode (postinstall)
-# ============================================================================
 
 check_optional_deps() {
     local -a missing=()
@@ -192,9 +187,8 @@ check_optional_deps() {
     echo ""
 }
 
-# ============================================================================
 # Result Tracking
-# ============================================================================
+# ================
 
 declare -a CREATED_FILES=()
 declare -a SKIPPED_FILES=()
@@ -206,9 +200,8 @@ track_skipped()   { SKIPPED_FILES+=("$1"); }
 track_backed_up() { BACKED_UP_FILES+=("$1"); }
 track_published() { PUBLISHED_FILES+=("$1"); }
 
-# ============================================================================
 # File Helpers
-# ============================================================================
+# ================
 
 # Publish a config to config/dev-tools/ (user-facing, hash-protected)
 publish_file() {
@@ -285,13 +278,12 @@ setup_file() {
     fi
 }
 
-# ============================================================================
 # Governance Files Publisher
+# ================
 # Publishes SECURITY.md, CONTRIBUTING.md, CODE_OF_CONDUCT.md to project root.
 # Replaces PACKAGE_GITLAB_ISSUES with the actual GitLab issues URL.
 # Hash-protected: skips files modified by the user (use --force to overwrite).
 # Not included in "all" - requires explicit opt-in (--publish=governance).
-# ============================================================================
 
 publish_governance_file() {
     local source="$1"
@@ -354,9 +346,8 @@ publish_governance_files() {
     done
 }
 
-# ============================================================================
 # GitLab CI - Placeholder Replacement Helper
-# ============================================================================
+# ================
 
 # Extract package name and derive cache key from package.json
 get_package_info() {
@@ -392,9 +383,8 @@ replace_gitlab_ci_placeholders() {
     fi
 }
 
-# ============================================================================
 # GitLab CI - NPM Package (.gitlab-ci.yml)
-# ============================================================================
+# ================
 
 publish_gitlab_ci_npm() {
     local source="${DEV_TOOLS_ROOT}/stubs/gitlab-ci/gitlab-ci.yml.stub"
@@ -426,9 +416,8 @@ publish_gitlab_ci_npm() {
     log_info "ref: 0.0.0 will be updated automatically on: ${PM} update @zairakai/js-dev-tools"
 }
 
-# ============================================================================
 # GitLab CI - Laravel App (.gitlab/pipeline-js-app.yml + inject .gitlab-ci.yml)
-# ============================================================================
+# ================
 
 # Publish .gitlab/pipeline-js-app.yml (the JS pipeline fragment)
 publish_gitlab_pipeline_js() {
@@ -518,9 +507,8 @@ publish_gitlab_ci_laravel() {
     inject_or_create_gitlab_ci
 }
 
-# ============================================================================
 # Git Hooks - Install into .git/hooks
-# ============================================================================
+# ================
 
 publish_hooks() {
     local installer="${DEV_TOOLS_ROOT}/scripts/install-hooks.sh"
@@ -534,9 +522,8 @@ publish_hooks() {
     bash "$installer" --install
 }
 
-# ============================================================================
 # Publish Logic
-# ============================================================================
+# ================
 
 resolve_publish_keys() {
     local target="$1"
@@ -639,13 +626,12 @@ do_publish() {
     done
 }
 
-# ============================================================================
 # GitLab CI - Ref Synchronizer
+# ================
 # Mirrors GitlabCiSynchronizer.php from laravel-dev-tools.
 # Runs on every postinstall (npm install / npm update).
 # Reads the installed version of @zairakai/js-dev-tools and updates the
 # ref: in the project's .gitlab-ci.yml if it is out of sync.
-# ============================================================================
 
 sync_gitlab_ci_ref() {
     local gitlab_ci="${PROJECT_ROOT}/.gitlab-ci.yml"
@@ -703,9 +689,8 @@ sync_gitlab_ci_ref() {
     fi
 }
 
-# ============================================================================
 # Makefile Setup
-# ============================================================================
+# ================
 
 generate_makefile() {
     local target="${PROJECT_ROOT}/Makefile"
@@ -752,7 +737,8 @@ inject_makefile() {
 
     cat >> "$target" << 'INJECT_EOF'
 
-# ─── @zairakai/js-dev-tools ─────────────────────────────────────────────────────
+# @zairakai/js-dev-tools
+# ================
 # Injected by: bash node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh --with-makefile
 # Provides: eslint, prettier, stylelint, markdownlint, shellcheck, typecheck, build, knip, test, quality, bats targets
 DEV_TOOLS_NPM := node_modules/@zairakai/js-dev-tools
@@ -783,9 +769,8 @@ setup_makefile() {
     fi
 }
 
-# ============================================================================
 # Main Setup
-# ============================================================================
+# ================
 
 setup_project() {
     [[ "$SILENT_MODE" != "true" ]] && {
@@ -795,7 +780,8 @@ setup_project() {
         echo ""
     }
 
-    # ─── Publish mode ────────────────────────────────────────────────────────
+    # Publish mode
+    # ================
     if [[ -n "$PUBLISH_TARGET" ]]; then
         do_publish
 
@@ -834,7 +820,8 @@ setup_project() {
         exit 0
     fi
 
-    # ─── Normal setup ────────────────────────────────────────────────────────
+    # Normal setup
+    # ================
 
     ensure_dir "${PROJECT_ROOT}/config/dev-tools"
 
@@ -859,10 +846,12 @@ setup_project() {
             "config/dev-tools/eslint.config.js"
     fi
 
-    # ─── GitLab CI ref sync ───────────────────────────────────────────────────
+    # GitLab CI ref sync
+    # ================
     sync_gitlab_ci_ref
 
-    # ─── Summary ─────────────────────────────────────────────────────────────
+    # Summary
+    # ================
     if [[ "$SILENT_MODE" == "true" ]]; then
         check_optional_deps
         [[ ${#CREATED_FILES[@]} -eq 0 ]] && exit 0
@@ -895,8 +884,7 @@ setup_project() {
     check_optional_deps
 }
 
-# ============================================================================
 # Execute
-# ============================================================================
+# ================
 
 setup_project

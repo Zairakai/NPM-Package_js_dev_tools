@@ -34,9 +34,8 @@ teardown() {
     teardown_test_env
 }
 
-# ============================================================================
 # Stubs
-# ============================================================================
+# ================
 
 @test "hook stubs are executable" {
     for hook in commit-msg prepare-commit-msg pre-commit pre-push; do
@@ -44,9 +43,8 @@ teardown() {
     done
 }
 
-# ============================================================================
 # Installation
-# ============================================================================
+# ================
 
 @test "install creates symlinks for all 4 hooks" {
     cd "${TEST_GIT_DIR}"
@@ -82,9 +80,8 @@ teardown() {
     [ "$backups" -eq 0 ]
 }
 
-# ============================================================================
 # Removal
-# ============================================================================
+# ================
 
 @test "remove deletes installed symlinks" {
     cd "${TEST_GIT_DIR}"
@@ -108,9 +105,8 @@ teardown() {
     [ -f "${TEST_GIT_DIR}/.git/hooks/pre-commit" ]
 }
 
-# ============================================================================
 # Error handling
-# ============================================================================
+# ================
 
 @test "install fails outside a git repository" {
     # Build a separate pkg dir inside a non-git dir so PROJECT_ROOT and $PWD both have no .git

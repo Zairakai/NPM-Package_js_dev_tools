@@ -23,9 +23,8 @@ teardown() {
     rm -rf "${TEST_TEMP_DIR}"
 }
 
-# ============================================================================
 # commit-msg Hook Tests
-# ============================================================================
+# ================
 
 # Writes a message in a file and runs the commit-msg hook on it
 run_commit_msg() {
@@ -133,9 +132,8 @@ run_commit_msg() {
     done
 }
 
-# ============================================================================
 # prepare-commit-msg Hook Tests
-# ============================================================================
+# ================
 
 # Runs the prepare-commit-msg hook on a message, on a given branch, and prints the result
 prepare_message() {

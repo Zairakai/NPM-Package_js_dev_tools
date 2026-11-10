@@ -14,9 +14,8 @@ teardown() {
     teardown_test_env
 }
 
-# ============================================================================
 # Error Counter
-# ============================================================================
+# ================
 
 @test "init_error_counter initializes counter to 0" {
     init_error_counter
@@ -62,9 +61,8 @@ teardown() {
     [ "$result" -eq 0 ]
 }
 
-# ============================================================================
 # command_exists
-# ============================================================================
+# ================
 
 @test "command_exists returns 0 for existing command" {
     run command_exists "bash"
@@ -76,9 +74,8 @@ teardown() {
     [ "$status" -eq 1 ]
 }
 
-# ============================================================================
 # ensure_dir
-# ============================================================================
+# ================
 
 @test "ensure_dir creates directory if not exists" {
     local test_dir="${TEST_TEMP_DIR}/new_dir"
@@ -94,9 +91,8 @@ teardown() {
     [ -d "$test_dir" ]
 }
 
-# ============================================================================
 # has_files
-# ============================================================================
+# ================
 
 @test "has_files returns 0 for a plain single-extension glob with a match" {
     create_test_file "${TEST_TEMP_DIR}/resources/index.scss" "// scss"
@@ -147,9 +143,8 @@ teardown() {
     [ "$status" -eq 1 ]
 }
 
-# ============================================================================
 # resolve_config (4-level cascade: project root → config/dev-tools/ → config/ → DEV_TOOLS_ROOT bundled)
-# ============================================================================
+# ================
 
 @test "resolve_config returns file at project root (level 1)" {
     local old_project_root="$PROJECT_ROOT"
@@ -234,9 +229,8 @@ teardown() {
     [ -z "$result" ]
 }
 
-# ============================================================================
 # file_hash
-# ============================================================================
+# ================
 
 @test "file_hash returns a non-empty string for an existing file" {
     local test_file="${TEST_TEMP_DIR}/hashme.txt"

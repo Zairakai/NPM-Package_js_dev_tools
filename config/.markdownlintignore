@@ -1,5 +1,9 @@
 .cache/
 .git/
-.opencode/
+build/
+coverage/
+dist/
+docs/
 node_modules/
+vendor/
 *.min.md

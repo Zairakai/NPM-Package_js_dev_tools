@@ -14,7 +14,7 @@ max_line_length = 80
 
 [*.md]
 trim_trailing_whitespace = false
-max_line_length = 120
+indent_size = unset
 
 [{Makefile,*.mk}]
 indent_style = tab

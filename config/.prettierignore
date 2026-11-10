@@ -1,9 +1,13 @@
 build/
 coverage/
 dist/
+docs/
 node_modules/
 public/
+storybook-static/
 vendor/
+.nuxt/
+.output/
 *.lock
 *.md
 *.min.css

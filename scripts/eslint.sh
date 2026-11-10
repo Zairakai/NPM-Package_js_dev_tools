@@ -13,7 +13,7 @@ ensure_bin "$ESLINT_BIN" "eslint" || exit 1
 if [[ -n "$ESLINT_CONFIG" ]]; then
     log_step "Using configuration: ${ESLINT_CONFIG#"$PROJECT_ROOT"/}"
 else
-    log_warning "No ESLint configuration found — using ESLint defaults"
+    log_warning "No ESLint configuration found - using ESLint defaults"
 fi
 
 # Lint target depends on project type (overridable via env)
@@ -32,7 +32,7 @@ fi
 
 log_step "Checking: $LINT_TARGET"
 
-# Normalize away any trailing slash before appending our own — LINT_TARGET can be
+# Normalize away any trailing slash before appending our own - LINT_TARGET can be
 # "resources/js/", "src/" or "." depending on project type, and concatenating "."
 # directly with "**/*.ext" produces the invalid glob ".**/*.ext" (no match ever).
 LINT_TARGET_GLOB_BASE="${LINT_TARGET%/}/"
@@ -40,10 +40,10 @@ LINT_TARGET_GLOB_BASE="${LINT_TARGET%/}/"
 # Skip gracefully if no matching files exist.
 # The brace portion is intentionally left unquoted so bash's brace expansion
 # splits it into separate arguments before has_files() sees it (see has_files
-# doc comment in config.sh — brace expansion never applies to quoted text or
+# doc comment in config.sh - brace expansion never applies to quoted text or
 # to the contents of a variable).
 if ! has_files "${PROJECT_ROOT}/${LINT_TARGET_GLOB_BASE}"**/*.{js,ts,vue,jsx,tsx}; then
-    log_info "No JS/TS files found in ${LINT_TARGET} — skipping"
+    log_info "No JS/TS files found in ${LINT_TARGET} - skipping"
     exit 0
 fi
 

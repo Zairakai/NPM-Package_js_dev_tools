@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# BATS Test Helpers — @zairakai/js-dev-tools
+# BATS Test Helpers - @zairakai/js-dev-tools
 # Common utilities for BATS tests
 #
 

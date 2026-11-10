@@ -193,13 +193,13 @@ main() {
 
     if check_bats_installed "${required_version}"; then
         echo ""
-        log_info "No action needed — BATS is already available"
+        log_info "No action needed - BATS is already available"
         echo ""
         exit 0
     fi
 
     echo ""
-    log_warning "BATS not found or outdated — installing…"
+    log_warning "BATS not found or outdated - installing…"
     echo ""
 
     install_bats_core "${required_version}"

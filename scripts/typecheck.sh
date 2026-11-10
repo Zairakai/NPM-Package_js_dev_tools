@@ -32,7 +32,7 @@ log_info "Mode: --noEmit (type validation only)"
 
 # Skip gracefully if no .ts/.vue files are found
 if ! has_files "${PROJECT_ROOT}/**/*.ts" && ! has_files "${PROJECT_ROOT}/**/*.tsx" && ! has_files "${PROJECT_ROOT}/**/*.vue"; then
-    log_info "No TypeScript or Vue files found — skipping"
+    log_info "No TypeScript or Vue files found - skipping"
     exit 0
 fi
 

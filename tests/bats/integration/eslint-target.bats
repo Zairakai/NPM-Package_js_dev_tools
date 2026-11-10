@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 #
-# Integration Tests — scripts/eslint.sh / scripts/eslint-fix.sh target resolution
+# Integration Tests - scripts/eslint.sh / scripts/eslint-fix.sh target resolution
 #
 # Regression coverage for two bugs found while auditing nexus (2026-07-02):
 #   1. has_files() never matched a brace-alternation pattern passed as a single
@@ -10,7 +10,7 @@
 #      directly with "**/*.ext" produced the invalid glob ".**/*.ext".
 #
 # Both made `make quality` / `make quality-fix` report success without ESLint
-# ever running — no BATS coverage caught it because these scripts were never
+# ever running - no BATS coverage caught it because these scripts were never
 # exercised end-to-end, only asserted to exist (package-structure.bats).
 #
 
@@ -20,7 +20,7 @@ setup() {
     setup_test_env
     setup_fake_project
 
-    # Fake eslint binary — records that it was invoked and exits 0.
+    # Fake eslint binary - records that it was invoked and exits 0.
     cat > "${FAKE_PROJECT}/node_modules/.bin/eslint" <<'EOF'
 #!/usr/bin/env bash
 echo "eslint invoked with: $*" > "${ESLINT_CALL_LOG}"
@@ -58,7 +58,7 @@ teardown() {
 }
 
 @test "eslint.sh does not skip an npm-package project falling back to LINT_TARGET=." {
-    # No artisan, no src/ — triggers the "." fallback target.
+    # No artisan, no src/ - triggers the "." fallback target.
     echo 'export default {}' > "${FAKE_PROJECT}/index.js"
 
     run bash "${FAKE_PROJECT}/node_modules/@zairakai/js-dev-tools/scripts/eslint.sh"

@@ -9,7 +9,7 @@ maybe_dockerize "$0" "$@"
 log_header "Vitest Tests"
 
 if ! ensure_bin_optional "$VITEST_BIN" "vitest"; then
-    log_warning "vitest not installed — add it to devDependencies to run tests"
+    log_warning "vitest not installed - add it to devDependencies to run tests"
     exit 0
 fi
 

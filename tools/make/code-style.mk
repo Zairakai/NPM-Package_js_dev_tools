@@ -1,6 +1,6 @@
 # ESLint + Prettier Code Style Targets
 
-## —— 🎨 Code Style ——
+## -- 🎨 Code Style --
 
 .PHONY: eslint
 eslint: ## Check code style

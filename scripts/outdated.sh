@@ -13,7 +13,7 @@ ensure_dir "build/reports"
 # ─── IGNORE LIST ──────────────────────────────────────────────────────────────
 # Packages to exclude from the outdated check.
 # Populated from two sources (merged):
-#   1. OUTDATED_IGNORE env var — comma-separated list
+#   1. OUTDATED_IGNORE env var - comma-separated list
 #      e.g. OUTDATED_IGNORE=prettier-plugin-blade,some-other-pkg
 #   2. package.json "outdatedIgnore" array field (optional, project-level)
 #      e.g. "outdatedIgnore": ["prettier-plugin-blade"]

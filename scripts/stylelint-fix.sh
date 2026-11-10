@@ -33,7 +33,7 @@ log_step "Fixing: $STYLELINT_TARGET"
 
 # Skip gracefully if no matching files exist
 if ! has_files "${PROJECT_ROOT}/${STYLELINT_TARGET}"; then
-    log_info "No SCSS/CSS files found matching ${STYLELINT_TARGET} — skipping"
+    log_info "No SCSS/CSS files found matching ${STYLELINT_TARGET} - skipping"
     exit 0
 fi
 

@@ -16,7 +16,7 @@ load '../helpers/test_helper'
 setup() {
     setup_test_env
 
-    # Fake git repository — TEST_PKG_DIR lives inside it so config.sh
+    # Fake git repository - TEST_PKG_DIR lives inside it so config.sh
     # resolves PROJECT_ROOT to TEST_GIT_DIR (node_modules pattern: 4 levels up)
     export TEST_GIT_DIR="${TEST_TEMP_DIR}/test-repo"
     export TEST_PKG_DIR="${TEST_GIT_DIR}/node_modules/@zairakai/js-dev-tools"

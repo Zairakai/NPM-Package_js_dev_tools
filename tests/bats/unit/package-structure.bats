@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 #
-# Unit Tests — Package Structure
+# Unit Tests - Package Structure
 # Verifies that all required files are present in the npm package.
 # These tests run against the source tree (not an installed package).
 #
@@ -100,7 +100,7 @@ teardown() {
 }
 
 # ============================================================================
-# scripts/ — shebang check
+# scripts/ - shebang check
 # ============================================================================
 
 @test "all scripts have correct shebang" {
@@ -285,7 +285,7 @@ teardown() {
 }
 
 # ============================================================================
-# package.json — files[] declaration
+# package.json - files[] declaration
 # ============================================================================
 
 @test "package.json includes config/ in files[]" {

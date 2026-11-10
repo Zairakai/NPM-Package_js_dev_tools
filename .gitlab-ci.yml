@@ -1,5 +1,5 @@
 # ================================
-# DEV-TOOLS — Pipeline CI/CD
+# DEV-TOOLS - Pipeline CI/CD
 # ================================
 # Self-hosted pipeline: uses local template (local:)
 # because this project IS the source of the templates.

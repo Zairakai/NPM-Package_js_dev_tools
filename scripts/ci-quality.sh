@@ -40,7 +40,7 @@ if [[ -f "${PROJECT_ROOT}/tsconfig.json" ]] && [[ -f "${BIN_DIR}/tsc" ]]; then
     run_check "TypeScript (tsc --noEmit)" "bash '${SCRIPT_DIR}/typecheck.sh'" || true
     echo ""
 else
-    log_info "TypeScript: no tsconfig.json or tsc — skipping"
+    log_info "TypeScript: no tsconfig.json or tsc - skipping"
     echo ""
 fi
 

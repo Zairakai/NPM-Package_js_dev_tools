@@ -23,14 +23,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/config.sh"
 
 # ============================================================================
-# CI Mode Detection — delegates to IS_CI exported by config.sh
+# CI Mode Detection - delegates to IS_CI exported by config.sh
 # ============================================================================
 CI_MODE="$IS_CI"
 
 # ============================================================================
 # Publishable configs registry
 # Format: [key]="source_relative_to_dev_tools|target_relative_to_project|group"
-# Note: gitlab-ci has a special handler (auto-detects project type) — not in this registry.
+# Note: gitlab-ci has a special handler (auto-detects project type) - not in this registry.
 # ============================================================================
 
 declare -A PUBLISHABLE=(
@@ -136,25 +136,25 @@ fi
 
 # ============================================================================
 # Optional Dependencies Check
-# Runs after setup — shows informative messages even in silent mode (postinstall)
+# Runs after setup - shows informative messages even in silent mode (postinstall)
 # ============================================================================
 
 check_optional_deps() {
     local -a missing=()
 
-    # zod — runtime type validation (validates API responses / form inputs at runtime)
+    # zod - runtime type validation (validates API responses / form inputs at runtime)
     [[ ! -d "${PROJECT_ROOT}/node_modules/zod" ]] \
         && missing+=("zod|Runtime type validation for JS/Vue (validates API responses, forms)|${PM} install zod")
 
-    # typescript — enables make typecheck and make build
+    # typescript - enables make typecheck and make build
     [[ ! -d "${PROJECT_ROOT}/node_modules/typescript" ]] \
-        && missing+=("typescript|TypeScript compiler — enables make typecheck + make build|${PM} install --save-dev typescript")
+        && missing+=("typescript|TypeScript compiler - enables make typecheck + make build|${PM} install --save-dev typescript")
 
-    # tsup — fast TS bundler (recommended for npm packages to publish)
+    # tsup - fast TS bundler (recommended for npm packages to publish)
     [[ ! -d "${PROJECT_ROOT}/node_modules/tsup" ]] \
         && missing+=("tsup|Fast TypeScript bundler for npm packages (esbuild-based)|${PM} install --save-dev tsup")
 
-    # knip — unused exports, files and dependencies detector
+    # knip - unused exports, files and dependencies detector
     [[ ! -d "${PROJECT_ROOT}/node_modules/knip" ]] \
         && missing+=("knip|Unused exports and dependencies detector (make knip)|${PM} install --save-dev knip")
 
@@ -162,7 +162,7 @@ check_optional_deps() {
 
     if [[ "$SILENT_MODE" == "true" ]]; then
         echo ""
-        echo "  ┌─ @zairakai/js-dev-tools — optional packages not installed ─┐"
+        echo "  ┌─ @zairakai/js-dev-tools - optional packages not installed ─┐"
         for entry in "${missing[@]}"; do
             local pkg="${entry%%|*}"
             local rest="${entry#*|}"
@@ -290,7 +290,7 @@ setup_file() {
 # Publishes SECURITY.md, CONTRIBUTING.md, CODE_OF_CONDUCT.md to project root.
 # Replaces PACKAGE_GITLAB_ISSUES with the actual GitLab issues URL.
 # Hash-protected: skips files modified by the user (use --force to overwrite).
-# Not included in "all" — requires explicit opt-in (--publish=governance).
+# Not included in "all" - requires explicit opt-in (--publish=governance).
 # ============================================================================
 
 publish_governance_file() {
@@ -355,7 +355,7 @@ publish_governance_files() {
 }
 
 # ============================================================================
-# GitLab CI — Placeholder Replacement Helper
+# GitLab CI - Placeholder Replacement Helper
 # ============================================================================
 
 # Extract package name and derive cache key from package.json
@@ -393,7 +393,7 @@ replace_gitlab_ci_placeholders() {
 }
 
 # ============================================================================
-# GitLab CI — NPM Package (.gitlab-ci.yml)
+# GitLab CI - NPM Package (.gitlab-ci.yml)
 # ============================================================================
 
 publish_gitlab_ci_npm() {
@@ -427,7 +427,7 @@ publish_gitlab_ci_npm() {
 }
 
 # ============================================================================
-# GitLab CI — Laravel App (.gitlab/pipeline-js-app.yml + inject .gitlab-ci.yml)
+# GitLab CI - Laravel App (.gitlab/pipeline-js-app.yml + inject .gitlab-ci.yml)
 # ============================================================================
 
 # Publish .gitlab/pipeline-js-app.yml (the JS pipeline fragment)
@@ -464,10 +464,10 @@ publish_gitlab_pipeline_js() {
 # Inject the local pipeline-js-app.yml include into .gitlab-ci.yml (or create it)
 inject_or_create_gitlab_ci() {
     local target="${PROJECT_ROOT}/.gitlab-ci.yml"
-    local marker="# @zairakai/js-dev-tools — JS"
+    local marker="# @zairakai/js-dev-tools - JS"
 
     if [[ ! -f "$target" ]]; then
-        # No .gitlab-ci.yml yet — create a minimal one
+        # No .gitlab-ci.yml yet - create a minimal one
         cat > "$target" << 'GITLAB_EOF'
 # .gitlab-ci.yml
 # Generated by @zairakai/js-dev-tools setup-project.sh
@@ -478,21 +478,21 @@ include:
   # JavaScript/frontend pipeline:
   - local: '.gitlab/pipeline-js-app.yml'
 
-# @zairakai/js-dev-tools — JS ────────────────────────────────────────────────────
+# @zairakai/js-dev-tools - JS ────────────────────────────────────────────────────
 GITLAB_EOF
         track_created ".gitlab-ci.yml"
         log_success "Created: .gitlab-ci.yml (includes .gitlab/pipeline-js-app.yml)"
         return 0
     fi
 
-    # .gitlab-ci.yml exists — check if already injected
+    # .gitlab-ci.yml exists - check if already injected
     if grep -qF "$marker" "$target" 2>/dev/null; then
-        log_info ".gitlab-ci.yml already includes pipeline-js-app.yml — skipping"
+        log_info ".gitlab-ci.yml already includes pipeline-js-app.yml - skipping"
         track_skipped ".gitlab-ci.yml (already injected)"
         return 0
     fi
 
-    log_info "Existing .gitlab-ci.yml detected — injecting pipeline-js-app.yml include"
+    log_info "Existing .gitlab-ci.yml detected - injecting pipeline-js-app.yml include"
 
     if [[ "$FORCE_OVERWRITE" == "true" ]]; then
         if backup_file "$target" 2>/dev/null; then
@@ -502,7 +502,7 @@ GITLAB_EOF
 
     cat >> "$target" << 'INJECT_EOF'
 
-# @zairakai/js-dev-tools — JS ────────────────────────────────────────────────────
+# @zairakai/js-dev-tools - JS ────────────────────────────────────────────────────
 # Injected by: bash node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh --publish=gitlab-ci
 # Adds JavaScript quality and test jobs.
 include:
@@ -519,7 +519,7 @@ publish_gitlab_ci_laravel() {
 }
 
 # ============================================================================
-# Git Hooks — Install into .git/hooks
+# Git Hooks - Install into .git/hooks
 # ============================================================================
 
 publish_hooks() {
@@ -541,7 +541,7 @@ publish_hooks() {
 resolve_publish_keys() {
     local target="$1"
 
-    # Special handlers — not in PUBLISHABLE
+    # Special handlers - not in PUBLISHABLE
     if [[ "$target" == "gitlab-ci" || "$target" == "hooks" ]]; then
         echo "$target"
         return 0
@@ -594,19 +594,19 @@ do_publish() {
     log_header "Publishing Dev Tools Configs"
 
     for key in "${keys[@]}"; do
-        # Dispatch special handler — project-type aware
+        # Dispatch special handler - project-type aware
         if [[ "$key" == "gitlab-ci" ]]; then
             publish_gitlab_ci
             continue
         fi
 
-        # Dispatch special handler — git hooks
+        # Dispatch special handler - git hooks
         if [[ "$key" == "hooks" ]]; then
             publish_hooks
             continue
         fi
 
-        # Dispatch special handler — governance files
+        # Dispatch special handler - governance files
         if [[ "$key" == "governance" ]]; then
             publish_governance_files
             continue
@@ -625,14 +625,14 @@ do_publish() {
             "$key"
 
         # After publishing markdownlint config to config/dev-tools/, also create a root
-        # .markdownlint.json that extends it — IDEs and editor extensions look at root.
+        # .markdownlint.json that extends it - IDEs and editor extensions look at root.
         if [[ "$key" == "markdownlint" ]]; then
             local root_markdownlint="${PROJECT_ROOT}/.markdownlint.json"
             local root_content='{"extends":"./config/dev-tools/.markdownlint.json"}'
 
             if [[ ! -f "$root_markdownlint" ]]; then
                 echo "$root_content" > "$root_markdownlint"
-                track_created ".markdownlint.json (root — extends config/dev-tools/)"
+                track_created ".markdownlint.json (root - extends config/dev-tools/)"
                 log_success "Created: .markdownlint.json → extends config/dev-tools/.markdownlint.json"
             fi
         fi
@@ -640,7 +640,7 @@ do_publish() {
 }
 
 # ============================================================================
-# GitLab CI — Ref Synchronizer
+# GitLab CI - Ref Synchronizer
 # Mirrors GitlabCiSynchronizer.php from laravel-dev-tools.
 # Runs on every postinstall (npm install / npm update).
 # Reads the installed version of @zairakai/js-dev-tools and updates the
@@ -699,7 +699,7 @@ sync_gitlab_ci_ref() {
     if sed -i "s|ref: ${current_ref}|ref: ${installed_version}|" "$gitlab_ci"; then
         echo "  dev-tools: .gitlab-ci.yml ref ${current_ref} → ${installed_version}"
     else
-        echo "  dev-tools: WARNING — could not update .gitlab-ci.yml ref (manual fix needed)" >&2
+        echo "  dev-tools: WARNING - could not update .gitlab-ci.yml ref (manual fix needed)" >&2
     fi
 }
 
@@ -743,12 +743,12 @@ inject_makefile() {
     local marker="# @zairakai/js-dev-tools"
 
     if grep -qF "$marker" "$target" 2>/dev/null; then
-        log_info "Makefile already includes @zairakai/js-dev-tools — skipping"
+        log_info "Makefile already includes @zairakai/js-dev-tools - skipping"
         track_skipped "Makefile (already injected)"
         return 0
     fi
 
-    log_info "Existing Makefile detected — injecting @zairakai/js-dev-tools includes"
+    log_info "Existing Makefile detected - injecting @zairakai/js-dev-tools includes"
 
     cat >> "$target" << 'INJECT_EOF'
 
@@ -840,7 +840,7 @@ setup_project() {
 
     if [[ "$PROJECT_TYPE" == "laravel-app" ]] \
         && [[ -f "${PROJECT_ROOT}/vendor/zairakai/laravel-dev-tools/scripts/setup-package.sh" ]]; then
-        log_info "Laravel app detected — delegating setup to laravel-dev-tools (full-stack)"
+        log_info "Laravel app detected - delegating setup to laravel-dev-tools (full-stack)"
         extra_args=()
         [[ "$FORCE_OVERWRITE" == "true" ]] && extra_args+=("--force")
         [[ "$SILENT_MODE" == "true" ]] && extra_args+=("--silent")

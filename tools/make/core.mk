@@ -1,4 +1,4 @@
-# Core Makefile — Zairakai NPM Dev Tools
+# Core Makefile - Zairakai NPM Dev Tools
 # Aggregates all modular targets for JavaScript/TypeScript/Vue projects.
 #
 # Usage in a consumer project (Makefile):
@@ -31,10 +31,10 @@ include $(NPM_DIRECTORY_TOOLS_MAKE_DIR)markdownlint.mk
 # 3. ShellCheck validation
 include $(NPM_DIRECTORY_TOOLS_MAKE_DIR)shellcheck.mk
 
-# 4. Code style — ESLint + Prettier
+# 4. Code style - ESLint + Prettier
 include $(NPM_DIRECTORY_TOOLS_MAKE_DIR)code-style.mk
 
-# 5. CSS/SCSS — Stylelint (optional)
+# 5. CSS/SCSS - Stylelint (optional)
 include $(NPM_DIRECTORY_TOOLS_MAKE_DIR)stylelint.mk
 
 # 6. Dead code detection (Knip)

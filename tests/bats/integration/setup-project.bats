@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 #
-# Integration Tests — scripts/setup-project.sh
+# Integration Tests - scripts/setup-project.sh
 # Tests the project setup and publish functionality.
 #
 
@@ -207,7 +207,7 @@ teardown() {
 }
 
 # ============================================================================
-# Helper — simulate a Laravel app project
+# Helper - simulate a Laravel app project
 # ============================================================================
 
 setup_fake_laravel_project() {
@@ -216,7 +216,7 @@ setup_fake_laravel_project() {
 }
 
 # ============================================================================
-# --publish=gitlab-ci (npm-package type — default fake project)
+# --publish=gitlab-ci (npm-package type - default fake project)
 # ============================================================================
 
 @test "setup-project.sh --publish=gitlab-ci creates .gitlab-ci.yml for npm-package" {
@@ -244,7 +244,7 @@ setup_fake_laravel_project() {
 }
 
 # ============================================================================
-# --publish=gitlab-ci (laravel-app type — fake project with artisan)
+# --publish=gitlab-ci (laravel-app type - fake project with artisan)
 # ============================================================================
 
 @test "setup-project.sh --publish=gitlab-ci creates .gitlab/pipeline-js-app.yml for laravel-app" {
@@ -286,7 +286,7 @@ setup_fake_laravel_project() {
     # First injection
     bash "node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh" --publish=gitlab-ci
 
-    # Second injection — should be skipped
+    # Second injection - should be skipped
     run bash "node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh" --publish=gitlab-ci
 
     count="$(grep -c "pipeline-js-app.yml" "${FAKE_PROJECT}/.gitlab-ci.yml" || echo 0)"
@@ -315,7 +315,7 @@ setup_fake_laravel_project() {
 }
 
 # ============================================================================
-# ci-quality.sh — structure checks
+# ci-quality.sh - structure checks
 # ============================================================================
 
 @test "ci-quality.sh uses error counter pattern" {

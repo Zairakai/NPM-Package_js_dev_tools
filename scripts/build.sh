@@ -2,9 +2,9 @@
 #
 # Build script for npm packages.
 # Supports (in order of preference):
-#   1. Vite  — detected via vite.config.ts / vite.config.js (runs npm run build)
-#   2. tsup  — fast, esbuild-based bundler (recommended for pure TS packages)
-#   3. tsc   — official TypeScript compiler
+#   1. Vite  - detected via vite.config.ts / vite.config.js (runs npm run build)
+#   2. tsup  - fast, esbuild-based bundler (recommended for pure TS packages)
+#   3. tsc   - official TypeScript compiler
 #
 # Usage:
 #   bash scripts/build.sh
@@ -27,9 +27,9 @@ TSC_BIN="${BIN_DIR}/tsc"
 log_header "Build"
 
 if [[ -f "${PROJECT_ROOT}/vite.config.ts" ]] || [[ -f "${PROJECT_ROOT}/vite.config.js" ]]; then
-    log_info "Builder: Vite (vite.config detected — running npm run build)"
+    log_info "Builder: Vite (vite.config detected - running npm run build)"
     npm run build
-    log_success "Build complete — output in dist/"
+    log_success "Build complete - output in dist/"
 
 elif [[ -f "$TSUP_BIN" ]]; then
     log_info "Builder: tsup (fast, esbuild-based)"
@@ -38,7 +38,7 @@ elif [[ -f "$TSUP_BIN" ]]; then
     else
         "$TSUP_BIN"
     fi
-    log_success "Build complete — output in dist/"
+    log_success "Build complete - output in dist/"
 
 elif [[ -f "$TSC_BIN" ]]; then
     log_info "Builder: tsc (official TypeScript compiler)"

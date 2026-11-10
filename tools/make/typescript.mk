@@ -1,4 +1,4 @@
-## —— 🧩 Typescript ——
+## -- 🧩 Typescript --
 
 .PHONY: typecheck
 typecheck: ## Type-check TypeScript without emitting files (tsc --noEmit)

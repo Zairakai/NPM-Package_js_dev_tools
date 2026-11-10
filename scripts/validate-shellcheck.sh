@@ -56,7 +56,7 @@ for script in "${SHELL_SCRIPTS[@]}"; do
     if shellcheck --severity="${SEVERITY}" --format="${FORMAT}" "${script}"; then
         :
     else
-        log_error "  ✗ ${script} — ShellCheck failed"
+        log_error "  ✗ ${script} - ShellCheck failed"
         FAILED=$((FAILED + 1))
     fi
 done

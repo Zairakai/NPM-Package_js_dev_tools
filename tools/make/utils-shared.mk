@@ -1,12 +1,12 @@
 # Shared Utility Targets
 # Targets duplicated across PHP and JS toolchains
 
-## —— 🧰 Utils ——
+## -- 🧰 Utils --
 .PHONY: doctor
 doctor: ## Run environment diagnostics
 	@bash $(NPM_DIRECTORY_TOOLS_SCRIPTS_DIR)/doctor.sh
 
-## —— 🌿 Git ——
+## -- 🌿 Git --
 .PHONY: install-hooks
 install-hooks: ## Install git hooks into .git/hooks
 	@bash $(NPM_DIRECTORY_TOOLS_SCRIPTS_DIR)/install-hooks.sh

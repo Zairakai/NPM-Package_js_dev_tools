@@ -1,5 +1,5 @@
 # Quality Gate Targets
-## —— ✅ Quality Gates ——
+## -- ✅ Quality Gates --
 
 .PHONY: quality
 quality:: markdownlint shellcheck eslint prettier stylelint knip ## Run all quality checks

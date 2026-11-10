@@ -17,7 +17,7 @@ done
 
 log_header "Stylelint Check"
 
-# Stylelint is optional — skip gracefully if not installed
+# Stylelint is optional - skip gracefully if not installed
 ensure_bin_optional "$STYLELINT_BIN" "stylelint" || exit 0
 
 if [[ -n "$STYLELINT_CONFIG" ]]; then
@@ -35,7 +35,7 @@ log_step "Checking: $STYLELINT_TARGET"
 
 # Skip gracefully if no matching files exist (stylelint v16 errors on empty glob)
 if ! has_files "${PROJECT_ROOT}/${STYLELINT_TARGET}"; then
-    log_info "No SCSS/CSS files found matching ${STYLELINT_TARGET} — skipping"
+    log_info "No SCSS/CSS files found matching ${STYLELINT_TARGET} - skipping"
     exit 0
 fi
 

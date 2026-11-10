@@ -1,7 +1,7 @@
 # Stylelint Targets
 # Delegates to scripts/stylelint.sh
 
-## —— 🎨 Stylelint ——
+## -- 🎨 Stylelint --
 .PHONY: stylelint
 stylelint: ## Check CSS/SCSS style (Stylelint)
 	@bash $(NPM_DIRECTORY_TOOLS_SCRIPTS_DIR)/stylelint.sh

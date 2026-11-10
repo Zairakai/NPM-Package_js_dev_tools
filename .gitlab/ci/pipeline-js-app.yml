@@ -1,5 +1,5 @@
 # ================================
-# PIPELINE TEMPLATE — Laravel App JS/Frontend
+# PIPELINE TEMPLATE - Laravel App JS/Frontend
 # ================================
 # Provides JS/Frontend CI jobs for a Laravel application.
 # Includes pipeline-js-package.yml (all js: jobs) and disables the
@@ -8,7 +8,7 @@
 # PHP jobs come from laravel-dev-tools (pipeline-laravel-app.yml).
 # All js: job names never conflict with php: job names.
 #
-# Fullstack usage (recommended — single include):
+# Fullstack usage (recommended - single include):
 # ─────────────────────────────────────────────────────
 #   include:
 #     - project: 'zairakai/php-packages/laravel-dev-tools'
@@ -27,7 +27,7 @@
 # ================================
 
 include:
-  # All js: jobs come from pipeline-js-package.yml — no duplication.
+  # All js: jobs come from pipeline-js-package.yml - no duplication.
   - project: 'zairakai/npm-packages/js-dev-tools'
     ref: main
     file: '.gitlab/ci/pipeline-js-package.yml'
@@ -35,7 +35,7 @@ include:
 # ================================
 # STAGES
 # ================================
-# Merges with PHP pipeline stages — GitLab deduplicates identical names.
+# Merges with PHP pipeline stages - GitLab deduplicates identical names.
 # The build/publish/release stages from pipeline-js-package.yml are kept
 # in the merged list but stay empty (jobs below are disabled).
 stages:

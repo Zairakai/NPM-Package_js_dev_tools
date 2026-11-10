@@ -1,14 +1,14 @@
 # ================================
-# PIPELINE TEMPLATE — NPM Package
+# PIPELINE TEMPLATE - NPM Package
 # ================================
 # Shared pipeline template for NPM packages in the Zairakai namespace.
 # Self-contained: anchors and jobs are all in this single file.
-# YAML anchors do not survive cross-file include: — this is a YAML parser
+# YAML anchors do not survive cross-file include: - this is a YAML parser
 # limitation, not a GitLab one. Everything is therefore kept here.
 #
 # All job names are prefixed js: to avoid any collision with PHP or custom
 # jobs when this template is combined with other templates.
-# pipeline-js-app.yml (fullstack context) includes this file directly — no duplication.
+# pipeline-js-app.yml (fullstack context) includes this file directly - no duplication.
 #
 # USAGE in a consumer project:
 # ─────────────────────────────────────────
@@ -227,7 +227,7 @@ js:validate:shellcheck:
       if [[ -d scripts/ ]]; then
         bash "$JS_DEV_TOOLS_SCRIPTS/validate-shellcheck.sh"
       else
-        echo "No scripts/ directory found — skipping ShellCheck"
+        echo "No scripts/ directory found - skipping ShellCheck"
       fi
 
 # ================================
@@ -282,7 +282,7 @@ js:quality:typecheck:
       if [ -f tsconfig.json ] && [ -f node_modules/.bin/tsc ]; then
         bash "$JS_DEV_TOOLS_SCRIPTS/typecheck.sh"
       else
-        echo "TypeScript not configured — skipping (add tsconfig.json + typescript to devDependencies)"
+        echo "TypeScript not configured - skipping (add tsconfig.json + typescript to devDependencies)"
       fi
 
 js:quality:knip:
@@ -310,7 +310,7 @@ js:quality:bats:
       if [[ -d tests/bats ]]; then
         bats tests/bats --recursive
       else
-        echo "No BATS tests found — skipping"
+        echo "No BATS tests found - skipping"
       fi
 
 js:quality:outdated:
@@ -364,7 +364,7 @@ js:build:
       if { [ -f node_modules/.bin/tsup ] || [ -f node_modules/.bin/tsc ]; } && [ -f tsconfig.json ]; then
         bash "$JS_DEV_TOOLS_SCRIPTS/build.sh"
       else
-        echo "No TypeScript builder configured — skipping (install tsup or typescript)"
+        echo "No TypeScript builder configured - skipping (install tsup or typescript)"
       fi
   artifacts:
     paths:

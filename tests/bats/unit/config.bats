@@ -112,7 +112,7 @@ teardown() {
 
 # Regression for the bug found in nexus (2026-07-02): a brace-alternation
 # pattern passed as a single quoted argument used to always report "no files"
-# because bash never brace-expands the contents of a variable — only unquoted
+# because bash never brace-expands the contents of a variable - only unquoted
 # literal text at the call site. has_files must be called with the brace
 # portion left unquoted so the shell splits it into separate arguments.
 @test "has_files matches when called with the brace portion left unquoted (regression)" {
@@ -129,7 +129,7 @@ teardown() {
 
 @test "has_files still returns 1 for a literal quoted brace pattern (documents the pitfall)" {
     create_test_file "${TEST_TEMP_DIR}/resources/js/Foo.vue" "<template />"
-    # Entirely quoted — brace expansion cannot happen here. This is the exact
+    # Entirely quoted - brace expansion cannot happen here. This is the exact
     # shape of the bug: it must fail even though a matching file exists.
     run has_files "${TEST_TEMP_DIR}/resources/js/**/*.{js,ts,vue,jsx,tsx}"
     [ "$status" -eq 1 ]

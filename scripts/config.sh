@@ -51,7 +51,7 @@ export PROJECT_TYPE
 # depending on whatever Node happens to be on the host.
 #
 # Utility scripts (doctor.sh, install-hooks.sh, git-*.sh, setup-project.sh) never
-# call this — they inspect or act on the host on purpose and must keep doing so.
+# call this - they inspect or act on the host on purpose and must keep doing so.
 #
 # Opt out with DEV_TOOLS_NO_DOCKER=true. Override target service/mount with
 # DEV_TOOLS_NODE_SERVICE / DEV_TOOLS_NODE_SERVICE_MOUNT if a project's compose
@@ -62,7 +62,7 @@ maybe_dockerize() {
     local script_path="$1"
     shift
 
-    # Already running inside a container — nothing to dispatch.
+    # Already running inside a container - nothing to dispatch.
     [[ -f /.dockerenv ]] && return 0
 
     # Explicit opt-out.
@@ -77,7 +77,7 @@ maybe_dockerize() {
     local service="${DEV_TOOLS_NODE_SERVICE:-node}"
     local mount="${DEV_TOOLS_NODE_SERVICE_MOUNT:-/app}"
 
-    # Only dispatch when the target service is already running — never start
+    # Only dispatch when the target service is already running - never start
     # it as a side effect of running a quality check.
     if ! (cd "$PROJECT_ROOT" && docker compose ps --status running --services 2>/dev/null | grep -qx "$service"); then
         return 0
@@ -115,7 +115,7 @@ resolve_config() {
         return 0
     fi
 
-    # 2. config/dev-tools/ (published — can extend bundled default)
+    # 2. config/dev-tools/ (published - can extend bundled default)
     if [[ -f "${PROJECT_ROOT}/config/dev-tools/${filename}" ]]; then
         echo "${PROJECT_ROOT}/config/dev-tools/${filename}"
         return 0
@@ -178,7 +178,7 @@ ensure_bin_optional() {
     local bin="$1"
     local name="${2:-$(basename "$bin")}"
     if [[ ! -f "$bin" ]]; then
-        log_warning "${name} not installed — skipping (optional)"
+        log_warning "${name} not installed - skipping (optional)"
         return 1
     fi
     return 0
@@ -190,14 +190,14 @@ export -f ensure_bin_optional
 # Variadic: accepts one or more glob patterns, returns success if ANY matches.
 # Callers needing a brace-alternation pattern (e.g. *.{js,ts,vue}) must leave that
 # portion unquoted at the call site so bash's brace expansion splits it into
-# separate arguments BEFORE this function ever sees it — brace expansion only
+# separate arguments BEFORE this function ever sees it - brace expansion only
 # applies to unquoted literal text, never to the contents of a variable, so a
 # pattern like "**/*.{js,ts}" passed as a single quoted string is matched
 # literally (and never matches a real file) instead of being expanded.
 has_files() {
     local pattern
     for pattern in "$@"; do
-        # SC2086: unquoted intentionally — we need word splitting + glob expansion via nullglob+globstar
+        # SC2086: unquoted intentionally - we need word splitting + glob expansion via nullglob+globstar
         # shellcheck disable=SC2086
         if ( shopt -s nullglob globstar; set -- $pattern; [ $# -gt 0 ] ); then
             return 0

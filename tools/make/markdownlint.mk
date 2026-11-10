@@ -1,7 +1,7 @@
 # Markdownlint Targets
 # Delegates to scripts/markdownlint.sh
 
-## —— 📝 Markdownlint (Documentation Linting) ——
+## -- 📝 Markdownlint (Documentation Linting) --
 
 .PHONY: markdownlint
 markdownlint: ## Validate Markdown documentation style and formatting

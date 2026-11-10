@@ -66,7 +66,7 @@ show_config "tsup"         "$TSUP_CONFIG"
 echo ""
 echo -e "${CYAN}Configuration Fallback Order (all tools):${NC}"
 echo "    1. {file}                  (project root override)"
-echo "    2. config/dev-tools/{file} (published — can extend bundled default)"
+echo "    2. config/dev-tools/{file} (published - can extend bundled default)"
 echo "    3. config/{file}           (legacy or intermediate)"
 echo "    4. node_modules/@zairakai/js-dev-tools/config/{file} (bundled default)"
 

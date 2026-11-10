@@ -1,20 +1,17 @@
 # ======================
 # DEPENDENCIES
 # ======================
-/vendor
 /node_modules
+.npm/
 
 # ======================
 # BUILD & ARTIFACTS
 # ======================
 /build
-/storage
 
 # ======================
 # TEST / CACHE
 # ======================
-.phpunit.cache
-.phpunit.result.cache
 /coverage
 
 # ======================
@@ -22,8 +19,6 @@
 # ======================
 .idea/
 .vscode/
-.phpstorm.meta.php
-.phpactor.json
 
 # ======================
 # OS FILES
@@ -40,6 +35,3 @@ Thumbs.db
 # LOCAL CONFIG OVERRIDES
 # ======================
 config/dev-tools/
-
-.npm/
-public/

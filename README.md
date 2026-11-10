@@ -101,6 +101,8 @@ make ci            # full pipeline simulation
 make doctor        # environment diagnostics
 ```
 
+The same checks are npm scripts, for the projects that prefer them: `npm run quality`, `npm run quality:fix`, and one per tool (`eslint`, `prettier`, `stylelint`, `markdownlint`, `knip`, each with `:fix` when the tool can fix). They run the same scripts as `make`.
+
 ---
 
 ## Configuration

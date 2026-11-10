@@ -71,21 +71,36 @@
     "README.md"
   ],
   "scripts": {
-    "eslint": "eslint --config config/eslint.config.js config/*.{js,ts}",
-    "eslint:fix": "eslint --config config/eslint.config.js config/*.{js,ts} --fix",
+    "eslint": "bash ./scripts/eslint.sh",
+    "eslint:fix": "bash ./scripts/eslint-fix.sh",
     "postinstall": "bash ./scripts/setup-project.sh --silent || true",
     "knip": "bash ./scripts/knip.sh",
-    "markdownlint": "markdownlint-cli2 --config config/.markdownlint.json --ignore-path config/.markdownlintignore '**/*.md' '#node_modules'",
-    "markdownlint:fix": "markdownlint-cli2 --fix --config config/.markdownlint.json --ignore-path config/.markdownlintignore '**/*.md' '#node_modules'",
+    "markdownlint": "bash ./scripts/markdownlint.sh",
+    "markdownlint:fix": "bash ./scripts/markdownlint-fix.sh",
     "normalize": "make package-normalize",
     "package:validate": "make package-validate",
-    "prettier": "prettier . --check --config ./config/prettier.config.js --ignore-path ./config/.prettierignore",
-    "prettier:fix": "prettier . --write --config ./config/prettier.config.js --ignore-path ./config/.prettierignore",
+    "prettier": "bash ./scripts/prettier.sh",
+    "prettier:fix": "bash ./scripts/prettier-fix.sh",
+    "quality": "make quality",
+    "quality:fix": "make quality-fix",
     "setup": "bash ./scripts/setup-project.sh",
-    "stylelint": "stylelint --config config/stylelint.config.js --ignore-path config/.stylelintignore '**/*.scss'",
-    "stylelint:fix": "stylelint --config config/stylelint.config.js --ignore-path config/.stylelintignore '**/*.scss' --fix",
-    "test": "make test-all",
-    "validate": "make quality"
+    "stylelint": "bash ./scripts/stylelint.sh",
+    "stylelint:fix": "bash ./scripts/stylelint-fix.sh",
+    "test": "make test-all"
+  },
+  "overrides": {
+    "brace-expansion": "5.0.12",
+    "colord": "2.9.7",
+    "fast-uri": "3.1.9",
+    "js-yaml": {
+      ".": "4.3.2"
+    },
+    "katex": "0.18.11",
+    "markdown-it": "14.3.3",
+    "minimatch": "11.0.6",
+    "nanoid": "3.3.20",
+    "re2js": "2.9.1",
+    "smol-toml": "1.9.0"
   },
   "dependencies": {
     "@stanislas-poisson/js-dev-tools": "^2.0.0",
@@ -124,19 +139,5 @@
   },
   "publishConfig": {
     "access": "public"
-  },
-  "overrides": {
-    "markdown-it": "14.3.3",
-    "nanoid": "3.3.20",
-    "smol-toml": "1.9.0",
-    "colord": "2.9.7",
-    "fast-uri": "3.1.9",
-    "js-yaml": {
-      ".": "4.3.2"
-    },
-    "brace-expansion": "5.0.12",
-    "re2js": "2.9.1",
-    "minimatch": "11.0.6",
-    "katex": "0.18.11"
   }
 }

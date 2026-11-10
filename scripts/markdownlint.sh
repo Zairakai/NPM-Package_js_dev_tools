@@ -45,7 +45,7 @@ _add_ignore_file() {
     done < "$file"
 }
 
-MARKDOWNLINT_ARGS=("--config" "$MARKDOWNLINT_CONFIG" "**/*.md" "!.git" "!node_modules" "!vendor")
+MARKDOWNLINT_ARGS=("--config" "$MARKDOWNLINT_CONFIG" "**/*.md")
 
 # Parse .gitignore entries as exclusion patterns
 _add_ignore_file "${PROJECT_ROOT}/.gitignore"

@@ -4,7 +4,8 @@ import { dirname } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 // This package does not write the rules: it re-exports the ones of @stanislas-poisson/js-dev-tools, and keeps copies of
-// the files that cannot be re-exported (the ignore lists) because it publishes them to the projects.
+// the files that cannot be re-exported (the ignore lists) because it publishes them to the projects. The only additions
+// are the folders of Laravel (storage and the cache), which the base does not know.
 const base = dirname(
   dirname(createRequire(import.meta.url).resolve('@stanislas-poisson/js-dev-tools/config/tsconfig.base.json')),
 )
@@ -12,12 +13,28 @@ const own = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), 'u
 const fromBase = (path) => readFileSync(`${base}/${path}`, 'utf8')
 
 describe('the base', () => {
-  it.each(['.prettierignore', '.stylelintignore', '.markdownlintignore'])('has the same %s', (file) => {
-    expect(own(`config/${file}`)).toBe(fromBase(`config/${file}`))
+  it.each(['.prettierignore', '.stylelintignore', '.markdownlintignore'])(
+    'has the %s of the base, and the folders of Laravel',
+    (file) => {
+      const lines = own(`config/${file}`).split('\n')
+
+      for (const line of fromBase(`config/${file}`).split('\n').filter(Boolean)) {
+        expect(lines, line).toContain(line)
+      }
+
+      expect(lines).toEqual(expect.arrayContaining(['storage/', 'bootstrap/cache/']))
+    },
+  )
+
+  it('ignores the folders of Laravel in ESLint, after the rules of the base', async () => {
+    const { default: config } = await import('../../config/eslint.config.js')
+    const { default: baseConfig } = await import('@stanislas-poisson/js-dev-tools/eslint')
+
+    expect(config.slice(0, -1)).toEqual(baseConfig)
+    expect(config.at(-1)).toEqual({ ignores: ['storage/**', 'bootstrap/cache/**'] })
   })
 
   it.each([
-    ['eslint', 'eslint'],
     ['prettier', 'prettier'],
     ['stylelint', 'stylelint'],
     ['vitest', 'vitest'],

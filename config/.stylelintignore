@@ -8,3 +8,7 @@ public/
 .nuxt/
 .output/
 *.min.css
+
+# Laravel: the runtime files and the cache are not source
+storage/
+bootstrap/cache/

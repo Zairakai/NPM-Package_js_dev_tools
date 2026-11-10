@@ -7,3 +7,7 @@ docs/
 node_modules/
 vendor/
 *.min.md
+
+# Laravel: the runtime files and the cache are not source
+storage/
+bootstrap/cache/

@@ -13,3 +13,7 @@ vendor/
 *.min.css
 *.min.js
 gl-*.json
+
+# Laravel: the runtime files and the cache are not source
+storage/
+bootstrap/cache/

@@ -195,6 +195,16 @@ Available templates:
 - `.gitlab/ci/pipeline-js-package.yml`: security → install → validate → quality → test → build → publish → release
 - `.gitlab/ci/pipeline-js-app.yml`: JS quality + test jobs for Laravel full-stack apps
 
+Both files are entry points: the jobs are in `.gitlab/ci/parts/`, one file per role, and the application includes the parts it needs and none of what only a package does.
+
+| Part | Jobs | Package | Application |
+| :--- | :--- | :---: | :---: |
+| `base.yml` | workflow, runner, variables, hidden jobs | yes | yes |
+| `security.yml` | secret detection, check of the tag | yes | yes |
+| `quality.yml` | install, validate, quality, test | yes | yes |
+| `updates.yml` | `deps:update`, `deps:audit`, `deps:release`, `deps:tag` | yes | yes |
+| `publish.yml` | build, publish, release, documentation, `deps:cascade` | yes | no |
+
 ---
 
 ## Automatic updates

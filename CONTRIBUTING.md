@@ -15,7 +15,7 @@
 | **4. Quality** | `make quality` | Run the full quality gate. |
 | **5. Test** | `make test-all` | Ensure all tests (Vitest + BATS) are passing. |
 | **6. Commit** | `git commit -m "type(scope): #TICKET subject"` | Use [Conventional Commits][git-rules] format. |
-| **7. Push** | `git push origin feature/#TICKET-name` | Push and open a Merge Request to `main`. |
+| **7. Push** | `git push origin feature/#TICKET-name` | Push and open a Merge Request to `develop`. |
 
 ---
 
@@ -36,12 +36,14 @@
 | Command | Tool | Description |
 | :--- | :--- | :--- |
 | `make quality` | All | Full static analysis and formatting gate. |
+| `make quality-fix` | All | Apply the fixes that the tools can make. |
 | `make eslint` | ESLint | Run JS/TS static analysis. |
 | `make prettier` | Prettier | Check code formatting. |
 | `make stylelint` | Stylelint | Run SCSS/CSS static analysis. |
 | `make typecheck` | TSC | Run TypeScript type checking. |
 | `make markdownlint` | Markdownlint | Validate Markdown documentation. |
-| `make test` | Vitest | Run unit tests with coverage. |
+| `make test` | Vitest | Run the unit tests. |
+| `make test-coverage` | Vitest | Run the unit tests with the coverage report (`coverage/`): 75 % at least, as the base requires. |
 | `make bats` | BATS | Run shell script integration tests. |
 
 ---

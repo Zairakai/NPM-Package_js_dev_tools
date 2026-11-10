@@ -28,9 +28,9 @@ cd "$PROJECT_ROOT"
 
 # Check if make is available
 if ! command -v make &>/dev/null; then
-    echo -e "${RED}❌ make not found - skipping quality checks${NC}"
-    echo ""
-    exit 0
+  echo -e "${RED}❌ make not found - skipping quality checks${NC}"
+  echo ""
+  exit 0
 fi
 
 # Run full quality gate (quality + tests)
@@ -38,20 +38,20 @@ echo -e "${BLUE}→${NC} Running: ${CYAN}make ci${NC}"
 echo ""
 
 if make ci; then
-    echo ""
-    echo -e "${GREEN}✅ All quality gates passed - push allowed${NC}"
-    echo ""
-    exit 0
+  echo ""
+  echo -e "${GREEN}✅ All quality gates passed - push allowed${NC}"
+  echo ""
+  exit 0
 else
-    echo ""
-    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${RED}  ❌ Quality gate failed!${NC}"
-    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo ""
-    echo -e "${YELLOW}Fix issues or run local tests before pushing.${NC}"
-    echo ""
-    echo -e "${YELLOW}Or bypass (NOT recommended):${NC}"
-    echo -e "  ${CYAN}git push --no-verify${NC}"
-    echo ""
-    exit 1
+  echo ""
+  echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo -e "${RED}  ❌ Quality gate failed!${NC}"
+  echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo ""
+  echo -e "${YELLOW}Fix issues or run local tests before pushing.${NC}"
+  echo ""
+  echo -e "${YELLOW}Or bypass (NOT recommended):${NC}"
+  echo -e "  ${CYAN}git push --no-verify${NC}"
+  echo ""
+  exit 1
 fi

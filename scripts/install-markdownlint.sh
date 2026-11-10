@@ -16,10 +16,10 @@ source "${SCRIPT_DIR}/config.sh"
 log_header "Markdownlint Installer"
 
 if [[ -f "$MARKDOWNLINT_BIN" ]]; then
-    version=$("$MARKDOWNLINT_BIN" --version 2>/dev/null || echo "unknown")
-    log_success "markdownlint-cli2 already installed: ${version}"
-    log_info "Run: make markdownlint"
-    exit 0
+  version=$("$MARKDOWNLINT_BIN" --version 2>/dev/null || echo "unknown")
+  log_success "markdownlint-cli2 already installed: ${version}"
+  log_info "Run: make markdownlint"
+  exit 0
 fi
 
 log_info "markdownlint-cli2 not found in node_modules/.bin/"

@@ -1,6 +1,6 @@
 /**
  * Project ESLint configuration.
- * Extends the @zairakai/js-dev-tools base config — customize as needed.
+ * Extends the @zairakai/js-dev-tools base config - customize as needed.
  *
  * Example of adding project-specific rules:
  *   export default [

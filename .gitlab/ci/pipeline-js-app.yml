@@ -1,75 +1,56 @@
-# ================================
-# PIPELINE TEMPLATE — Laravel App JS/Frontend
-# ================================
+# PIPELINE TEMPLATE - Laravel App JS/Frontend
+# ================
 # Provides JS/Frontend CI jobs for a Laravel application.
-# Includes pipeline-js-package.yml (all js: jobs) and disables the
-# package-specific stages (build, publish, release) not relevant for apps.
+# Includes the files of parts/ that an application needs (base, security, quality, updates) and none of what only a
+# package does (build, publish, release, documentation, cascade): nothing to disable.
 #
 # PHP jobs come from laravel-dev-tools (pipeline-laravel-app.yml).
 # All js: job names never conflict with php: job names.
 #
-# Fullstack usage (recommended — single include):
-# ─────────────────────────────────────────────────────
+# Fullstack usage (recommended - single include):
+# ================
 #   include:
 #     - project: 'zairakai/php-packages/laravel-dev-tools'
 #       ref: main
 #       file: '.gitlab/ci/pipeline-laravel-fullstack.yml'
 #
 # Standalone usage (JS side only, alongside a custom PHP pipeline):
-# ─────────────────────────────────────────────────────
+# ================
 #   include:
 #     - project: 'zairakai/npm-packages/js-dev-tools'
 #       ref: main
 #       file: '.gitlab/ci/pipeline-js-app.yml'
 #
 #   variables:
-#     CACHE_KEY: "my-app-v1"
-# ================================
+#     CACHE_KEY: "my-app-v2"
 
 include:
-  # All js: jobs come from pipeline-js-package.yml — no duplication.
-  - project: "zairakai/npm-packages/js-dev-tools"
-    ref: main
-    file: ".gitlab/ci/pipeline-js-package.yml"
+  # security.yml first: the template of the secret detection it includes sets variables that base.yml overrides.
+  - local: '.gitlab/ci/parts/security.yml'
+  - local: '.gitlab/ci/parts/base.yml'
+  - local: '.gitlab/ci/parts/quality.yml'
+  - local: '.gitlab/ci/parts/updates.yml'
 
-# ================================
 # STAGES
-# ================================
-# Merges with PHP pipeline stages — GitLab deduplicates identical names.
-# The build/publish/release stages from pipeline-js-package.yml are kept
-# in the merged list but stay empty (jobs below are disabled).
+# ================
+# Merges with PHP pipeline stages - GitLab deduplicates identical names.
+# release is the stage of deps:release and deps:tag.
 stages:
   - security
   - install
   - validate
   - quality
   - test
+  - release
   - deploy
   - metrics
 
-# ================================
 # VARIABLES
-# ================================
+# ================
 variables:
   # Default cache key for app context (overridden per project via CACHE_KEY).
-  CACHE_KEY: "zairakai-laravel-app"
+  CACHE_KEY: 'zairakai-laravel-app'
 
   # Note: GIT_CLEAN_FLAGS intentionally NOT set here.
   # pipeline-laravel-fullstack.yml sets the combined value to preserve
   # both vendor/ and node_modules/.
-
-# ================================
-# DISABLE package-specific jobs
-# Not relevant for a Laravel app (no npm publish or GitLab release).
-# ================================
-js:build:
-  rules:
-    - when: never
-
-js:publish:
-  rules:
-    - when: never
-
-js:release:
-  rules:
-    - when: never

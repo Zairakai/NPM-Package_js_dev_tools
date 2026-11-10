@@ -1,0 +1,40 @@
+# JS PIPELINE - SECURITY
+# ================
+# The secret detection of GitLab and the check of the format of a tag.
+# Included by pipeline-js-package.yml and pipeline-js-app.yml.
+
+include:
+  - template: Jobs/Secret-Detection.gitlab-ci.yml
+
+secret_detection:
+  stage: security
+  rules:
+    - if: $UPDATE_DEPENDENCIES == "true"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+
+# A tag whose format is not the one of VERSION_TAG_REGEX (group variable) fails here,
+# and the jobs that publish do not run for it.
+js:tag-format:
+  extends: .js:base
+  stage: security
+  image: ${ALPINE_IMAGE}
+  rules:
+    - if: $UPDATE_DEPENDENCIES == "true"
+      when: never
+    - if: $CI_COMMIT_TAG
+  script:
+    - |
+      regex="${VERSION_TAG_REGEX:-}"
+      regex="${regex#/}"
+      regex="${regex%/}"
+      if [ -z "$regex" ]; then
+        echo "ERROR: VERSION_TAG_REGEX is not set. It is a variable of the zairakai group."
+        exit 1
+      fi
+      if ! printf '%s\n' "$CI_COMMIT_TAG" | grep -Eq "$regex"; then
+        echo "ERROR: the tag \"$CI_COMMIT_TAG\" does not match $VERSION_TAG_REGEX (X.Y.Z or X.Y.Z-prerelease)."
+        exit 1
+      fi
+      echo "Tag $CI_COMMIT_TAG: format OK"

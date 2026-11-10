@@ -69,7 +69,7 @@ describe('runtimeChanged', () => {
   it('sees a range of dependencies or of peerDependencies', () => {
     expect(runtimeChanged({ dependencies: { dayjs: '^1.0.0' } }, { dependencies: { dayjs: '^1.1.0' } })).toBe(true)
     expect(
-      runtimeChanged({ peerDependencies: { zod: '^3.0.0' } }, { peerDependencies: { zod: '^3.0.0 || ^4.0.0' } })
+      runtimeChanged({ peerDependencies: { zod: '^3.0.0' } }, { peerDependencies: { zod: '^3.0.0 || ^4.0.0' } }),
     ).toBe(true)
   })
 
@@ -148,7 +148,7 @@ describe('planTag', () => {
     const config = loadConfig('/missing')
 
     expect(
-      planTag({ ...base, commits: [], config, before: runtime, after: { dependencies: { dayjs: '^2.0.0' } } }).version
+      planTag({ ...base, commits: [], config, before: runtime, after: { dependencies: { dayjs: '^2.0.0' } } }).version,
     ).toBeNull()
     expect(
       planTag({
@@ -156,7 +156,7 @@ describe('planTag', () => {
         config: { ...config, tag: { when: 'never', level: 'patch' } },
         before: runtime,
         after: { dependencies: { dayjs: '^2.0.0' } },
-      }).version
+      }).version,
     ).toBeNull()
   })
 })
@@ -215,7 +215,7 @@ describe('the PHP ecosystem', () => {
 
     expect(runtimeChanged(before, { ...before, 'require-dev': { pint: '^2.0' } }, ['require'])).toBe(false)
     expect(runtimeChanged(before, { ...before, require: { 'laravel/framework': '^12.0 || ^13.0' } }, ['require'])).toBe(
-      true
+      true,
     )
   })
 
@@ -482,7 +482,7 @@ describe('policyViolations', () => {
     ])
     expect(policyViolations({ ...input, blocked: [] })).toEqual([])
     expect(
-      policyViolations({ ...input, beforeLock: null, afterManifest: input.beforeManifest, afterLock: null })
+      policyViolations({ ...input, beforeLock: null, afterManifest: input.beforeManifest, afterLock: null }),
     ).toEqual([])
   })
 })
@@ -505,15 +505,15 @@ describe('syncDependabot', () => {
     const synced = syncDependabot(file([]), ['typescript', '@prettier/plugin-php'], 'npm')
 
     expect(synced).toBe(
-      file(['    ignore:', '      - dependency-name: "typescript"', '      - dependency-name: "@prettier/plugin-php"'])
+      file(['    ignore:', "      - dependency-name: 'typescript'", "      - dependency-name: '@prettier/plugin-php'"]),
     )
   })
 
   it('removes the rules when the policy is empty, and replaces the old ones', () => {
-    const old = file(['    ignore:', '      - dependency-name: "old"'])
+    const old = file(['    ignore:', "      - dependency-name: 'old'"])
 
     expect(syncDependabot(old, [], 'npm')).toBe(file([]))
-    expect(syncDependabot(old, ['new'], 'npm')).toBe(file(['    ignore:', '      - dependency-name: "new"']))
+    expect(syncDependabot(old, ['new'], 'npm')).toBe(file(['    ignore:', "      - dependency-name: 'new'"]))
   })
 
   it('leaves the rest of the file and the other ecosystems alone', () => {

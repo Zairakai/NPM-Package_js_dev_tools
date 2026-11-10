@@ -11,11 +11,11 @@ export default {
   // The documentation site (VitePress) has its own tools and is not part of the package.
   ignore: ['docs/**'],
 
-  // "Referenced optional peerDependencies" is informational — stylelint is intentionally optional
+  // "Referenced optional peerDependencies" is informational - stylelint is intentionally optional
   exclude: ['optionalPeerDependencies'],
 
   ignoreDependencies: [
-    // Coverage provider — referenced as string in config/vitest.config.js (provider: 'v8')
+    // Coverage provider - referenced as string in config/vitest.config.js (provider: 'v8')
     '@vitest/coverage-v8',
 
     // Optional peer dep bundled for consumers

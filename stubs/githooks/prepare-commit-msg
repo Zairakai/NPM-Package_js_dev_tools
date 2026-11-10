@@ -15,19 +15,19 @@ commit_msg_file="$1"
 commit_source="$2"
 
 case "$commit_source" in
-    merge | squash | commit) exit 0 ;;
+  merge | squash | commit) exit 0 ;;
 esac
 
 branch=$(git symbolic-ref --short HEAD 2>/dev/null)
 
 # Extract the ticket from a branch named type/#NUMBER-description
 if [[ $branch =~ (feature|fix|hotfix)/#([0-9]+) ]]; then
-    ticket="#${BASH_REMATCH[2]}"
+  ticket="#${BASH_REMATCH[2]}"
 
-    if ! grep -qE "${ticket}([^0-9]|$)" "$commit_msg_file"; then
-        sed -i.bak -E "1s/^([a-z]+(\([^)]*\))?: )/\1${ticket} /" "$commit_msg_file"
-        rm -f "$commit_msg_file.bak"
-    fi
+  if ! grep -qE "${ticket}([^0-9]|$)" "$commit_msg_file"; then
+    sed -i.bak -E "1s/^([a-z]+(\([^)]*\))?: )/\1${ticket} /" "$commit_msg_file"
+    rm -f "$commit_msg_file.bak"
+  fi
 fi
 
 exit 0

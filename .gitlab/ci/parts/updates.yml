@@ -1,0 +1,60 @@
+# JS PIPELINE - AUTOMATIC UPDATES
+# ================
+# See the handbook, policies/dependency-management.md. The exceptions of a project live in .dependency-update.json.
+# The group variable GITLAB_TOKEN (protected, so these jobs run on main, develop and the tags) opens the merge requests,
+# merges them and creates the tags. The pipeline of each merge request is the gate: nothing is tested by these jobs.
+# Included by pipeline-js-package.yml and pipeline-js-app.yml. deps:cascade, which needs the publication, is in publish.yml.
+
+# A weekly schedule (or a pipeline started by the cascade) with UPDATE_DEPENDENCIES=true prepares the update.
+deps:update:
+  extends: .js:base
+  stage: install
+  image: ${NODE_UPDATE_IMAGE}
+  needs: []
+  script:
+    - node --version
+    - '[ -d node_modules ] || npm ci --no-audit --no-fund'
+    - '[ "${JS_DEV_TOOLS_SCRIPTS}" = "scripts" ] || npm install --no-save --no-audit --no-fund "@zairakai/js-dev-tools@latest"'
+    - node "${JS_DEV_TOOLS_SCRIPTS}/update-dependencies.mjs" update
+  rules:
+    - if: $UPDATE_DEPENDENCIES == "true" && $AUDIT_DEPENDENCIES != "true" && $CI_COMMIT_BRANCH == "develop"
+
+# A daily schedule with UPDATE_DEPENDENCIES=true and AUDIT_DEPENDENCIES=true looks for security advisories: one issue per
+# advisory (ntfy alert, closed when it is gone) and, with the group variable AUTO_FIX=true, an update started to fix it.
+# The token FRESHNESS_TOKEN of the group (else GITLAB_TOKEN) opens the issues and starts the update; NTFY_URL is the alert.
+deps:audit:
+  extends: .js:base
+  stage: install
+  image: ${NODE_UPDATE_IMAGE}
+  needs: []
+  script:
+    - node --version
+    - '[ -d node_modules ] || npm ci --no-audit --no-fund'
+    - '[ "${JS_DEV_TOOLS_SCRIPTS}" = "scripts" ] || npm install --no-save --no-audit --no-fund "@zairakai/js-dev-tools@latest"'
+    - node "${JS_DEV_TOOLS_SCRIPTS}/update-dependencies.mjs" audit
+  rules:
+    - if: $UPDATE_DEPENDENCIES == "true" && $AUDIT_DEPENDENCIES == "true" && $CI_COMMIT_BRANCH == "develop"
+
+# After the merge of an update into develop, bring develop into main.
+deps:release:
+  extends: .js:base
+  stage: release
+  image: ${NODE_IMAGE}
+  script:
+    - '[ -d node_modules ] || npm ci --no-audit --no-fund'
+    - node "${JS_DEV_TOOLS_SCRIPTS}/update-dependencies.mjs" release
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop" && $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_MESSAGE =~ /chore\/update-dependencies/
+
+# After the merge of an update into main, tag it when a published range changed. The tag starts the publication.
+deps:tag:
+  extends: .js:base
+  stage: release
+  image: ${NODE_UPDATE_IMAGE}
+  variables:
+    GIT_DEPTH: 0
+  script:
+    - '[ -d node_modules ] || npm ci --no-audit --no-fund'
+    - node "${JS_DEV_TOOLS_SCRIPTS}/update-dependencies.mjs" tag
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"

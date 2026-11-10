@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Knip — Dead Code & Unused Dependency Detection
+# Knip - Dead Code & Unused Dependency Detection
 # Finds unused exports, files, and dependencies in TypeScript/JavaScript projects.
 # https://knip.dev
 #
@@ -22,20 +22,20 @@ maybe_dockerize "$0" "$@"
 
 KNIP_BIN="${BIN_DIR}/knip"
 
-log_header "Knip — Dead Code Detection"
+log_header "Knip - Dead Code Detection"
 
 if ! ensure_bin_optional "$KNIP_BIN" "knip"; then
-    log_info "Install: npm install --save-dev knip"
-    exit 0
+  log_info "Install: npm install --save-dev knip"
+  exit 0
 fi
 
 KNIP_ARGS=()
 
 if [[ -n "$KNIP_CONFIG" ]]; then
-    log_step "Using configuration: ${KNIP_CONFIG#"$PROJECT_ROOT"/}"
-    KNIP_ARGS+=(--config "$KNIP_CONFIG")
+  log_step "Using configuration: ${KNIP_CONFIG#"$PROJECT_ROOT"/}"
+  KNIP_ARGS+=(--config "$KNIP_CONFIG")
 fi
 
 "$KNIP_BIN" "${KNIP_ARGS[@]}"
 
-log_success "Knip check passed — no dead code found"
+log_success "Knip check passed - no dead code found"

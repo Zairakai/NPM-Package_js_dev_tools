@@ -100,8 +100,8 @@ export function latestTag(tags) {
 export function nextVersion(last, level) {
   const [major, minor, patch] = last.split('.').map(Number)
 
-  if ('major' === level) return `${major + 1}.0.0`
-  if ('minor' === level) return `${major}.${minor + 1}.0`
+  if (level === 'major') return `${major + 1}.0.0`
+  if (level === 'minor') return `${major}.${minor + 1}.0`
 
   return `${major}.${minor}.${patch + 1}`
 }
@@ -148,9 +148,9 @@ export function formatChanges(rows) {
 export function signerIdentity(env) {
   const missing = ['GPG_PRIVATE_KEY_B64', 'RELEASE_SIGNER_NAME', 'RELEASE_SIGNER_EMAIL'].filter((name) => !env[name])
 
-  if (0 < missing.length) {
+  if (missing.length > 0) {
     throw new Error(
-      `${missing.join(', ')} not set: the commits and the tags are signed, see the handbook (versioning).`
+      `${missing.join(', ')} not set: the commits and the tags are signed, see the handbook (versioning).`,
     )
   }
 
@@ -163,11 +163,11 @@ export function signerIdentity(env) {
 
 /** What `tag` has to do: the version to create, or null (and why). */
 export function planTag({ config, last, commits, before, after, sections = RUNTIME_SECTIONS }) {
-  if ('never' === config.tag.when) return { version: null, reason: 'the project is never tagged by the update' }
+  if (config.tag.when === 'never') return { version: null, reason: 'the project is never tagged by the update' }
   if (!last) return { version: null, reason: 'there is no tag yet' }
-  if (0 === commits.length) return { version: null, reason: 'no update since the last tag' }
+  if (commits.length === 0) return { version: null, reason: 'no update since the last tag' }
 
-  if ('runtime' === config.tag.when && !runtimeChanged(before, after, sections)) {
+  if (config.tag.when === 'runtime' && !runtimeChanged(before, after, sections)) {
     return { version: null, reason: 'only the development dependencies changed: the published archive is the same' }
   }
 
@@ -181,7 +181,7 @@ export function planTag({ config, last, commits, before, after, sections = RUNTI
 export function isRefOnlyChange(diff) {
   const changed = diff.split('\n').filter((line) => /^[+-]/.test(line) && !/^(\+\+\+|---)/.test(line))
 
-  return 2 === changed.length && changed.every((line) => /^[+-]\s*ref:\s*\S+\s*$/.test(line))
+  return changed.length === 2 && changed.every((line) => /^[+-]\s*ref:\s*\S+\s*$/.test(line))
 }
 
 /** The problems of a policy document, as a list of sentences (empty when it is valid). */
@@ -193,20 +193,20 @@ export function validatePolicy(doc) {
 
   doc.entries.forEach((entry, index) => {
     const where = `entries[${index}]`
-    const name = 'string' === typeof entry?.package ? entry.package : ''
+    const name = typeof entry?.package === 'string' ? entry.package : ''
 
-    if ('' === name) errors.push(`${where}: "package" is missing.`)
+    if (name === '') errors.push(`${where}: "package" is missing.`)
     else if (seen.has(name)) errors.push(`${where}: "${name}" is listed twice.`)
     seen.add(name)
 
-    if ('string' !== typeof entry?.reason || '' === entry.reason.trim()) errors.push(`${where}: "reason" is missing.`)
+    if (typeof entry?.reason !== 'string' || entry.reason.trim() === '') errors.push(`${where}: "reason" is missing.`)
     if (!/^\d{4}-\d{2}-\d{2}$/.test(entry?.since ?? '')) errors.push(`${where}: "since" must be a date (YYYY-MM-DD).`)
 
     if (undefined !== entry?.unblock) {
       const { version, peers } = entry.unblock ?? {}
 
-      if (null === semver.valid(version)) errors.push(`${where}: "unblock.version" must be a version (X.Y.Z).`)
-      if (!Array.isArray(peers) || 0 === peers.length || !peers.every((peer) => 'string' === typeof peer && peer)) {
+      if (semver.valid(version) === null) errors.push(`${where}: "unblock.version" must be a version (X.Y.Z).`)
+      if (!Array.isArray(peers) || peers.length === 0 || !peers.every((peer) => typeof peer === 'string' && peer)) {
         errors.push(`${where}: "unblock.peers" must be a list of packages.`)
       }
     }
@@ -219,7 +219,7 @@ export function validatePolicy(doc) {
 export async function fetchPolicy(
   ecosystem,
   fetchImpl = fetch,
-  base = process.env.DEPENDENCY_POLICY_URL || POLICY_URL
+  base = process.env.DEPENDENCY_POLICY_URL || POLICY_URL,
 ) {
   const url = `${base.replace(/\/$/, '')}/${POLICY_FILES[ecosystem]}`
   let doc
@@ -233,7 +233,7 @@ export async function fetchPolicy(
   }
 
   const errors = validatePolicy(doc)
-  if (0 < errors.length) throw new Error(`The dependency policy is not valid (${url}): ${errors.join(' ')}`)
+  if (errors.length > 0) throw new Error(`The dependency policy is not valid (${url}): ${errors.join(' ')}`)
 
   return doc
 }
@@ -251,7 +251,7 @@ export function isLifted(entry, ranges) {
     const range = ranges[peer]
 
     return (
-      'string' === typeof range && null !== semver.validRange(range) && semver.satisfies(entry.unblock.version, range)
+      typeof range === 'string' && semver.validRange(range) !== null && semver.satisfies(entry.unblock.version, range)
     )
   })
 }
@@ -261,7 +261,7 @@ export function lockedVersions(lock) {
   const versions = {}
 
   for (const [path, info] of Object.entries(lock?.packages ?? {})) {
-    if ('' === path || !info?.version) continue
+    if (path === '' || !info?.version) continue
 
     const name = path.slice(path.lastIndexOf('node_modules/') + 'node_modules/'.length)
     versions[name] = [...new Set([...(versions[name] ?? []), info.version])].sort()
@@ -278,7 +278,7 @@ export function policyViolations({ blocked, beforeManifest, afterManifest, befor
   const problems = []
 
   for (const row of diffDependencies(beforeManifest, afterManifest)) {
-    if (blocked.includes(row.name) && null !== row.from && null !== row.to) {
+    if (blocked.includes(row.name) && row.from !== null && row.to !== null) {
       problems.push(`package.json: ${row.name} moves from ${row.from} to ${row.to}.`)
     }
   }
@@ -304,15 +304,15 @@ export function syncDependabot(text, names, ecosystem) {
   const end = `# END dependency-policy (${ecosystem})`
   const pattern = new RegExp(
     `^([ \\t]*)${begin.replaceAll(/[()]/g, '\\$&')}\\n[\\s\\S]*?^[ \\t]*${end.replaceAll(/[()]/g, '\\$&')}$`,
-    'm'
+    'm',
   )
   const match = pattern.exec(text)
 
-  if (null === match) return null
+  if (match === null) return null
 
   const indent = match[1]
   const rules =
-    0 === names.length ? [] : [`${indent}ignore:`, ...names.map((name) => `${indent}  - dependency-name: "${name}"`)]
+    names.length === 0 ? [] : [`${indent}ignore:`, ...names.map((name) => `${indent}  - dependency-name: '${name}'`)]
 
   return text.replace(pattern, () => [`${indent}${begin}`, ...rules, `${indent}${end}`].join('\n'))
 }
@@ -325,18 +325,18 @@ export function fixedOverrides(overrides, vulnerabilities, versionsOf) {
   const fixes = {}
 
   for (const [name, pin] of Object.entries(overrides ?? {})) {
-    const pinned = 'string' === typeof pin ? pin : pin?.['.']
+    const pinned = typeof pin === 'string' ? pin : pin?.['.']
     const range = vulnerabilities?.[name]?.range
 
-    if (null === semver.valid(pinned) || 'string' !== typeof range || null === semver.validRange(range)) continue
+    if (semver.valid(pinned) === null || typeof range !== 'string' || semver.validRange(range) === null) continue
     if (!semver.satisfies(pinned, range)) continue
 
     const candidates = (versionsOf(name) ?? []).filter(
       (version) =>
-        null !== semver.valid(version) &&
-        null === semver.prerelease(version) &&
+        semver.valid(version) !== null &&
+        semver.prerelease(version) === null &&
         semver.major(version) === semver.major(pinned) &&
-        !semver.satisfies(version, range)
+        !semver.satisfies(version, range),
     )
     const best = semver.maxSatisfying(candidates, '*')
 
@@ -352,7 +352,7 @@ export function fixedOverrides(overrides, vulnerabilities, versionsOf) {
  */
 export function refreshableNames(lock, scopes = TRUSTED_SCOPES) {
   const names = Object.keys(lock?.packages ?? {})
-    .filter((path) => '' !== path)
+    .filter((path) => path !== '')
     .map((path) => path.slice(path.lastIndexOf('node_modules/') + 'node_modules/'.length))
     .filter((name) => !scopes.some((scope) => name.startsWith(scope)))
 
@@ -379,7 +379,7 @@ export function isInherited(lock, name, scope = GROUP_SCOPE) {
   const edges = new Map()
 
   for (const [path, node] of Object.entries(packages)) {
-    if ('' === path) continue
+    if (path === '') continue
 
     const key = path.slice(path.lastIndexOf('node_modules/') + 'node_modules/'.length)
     const next = edges.get(key) ?? new Set()
@@ -392,13 +392,13 @@ export function isInherited(lock, name, scope = GROUP_SCOPE) {
 
   const root = packages['']
   const direct = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'].flatMap((section) =>
-    Object.keys(root?.[section] ?? {})
+    Object.keys(root?.[section] ?? {}),
   )
   const reaches = (starts) => {
     const seen = new Set(starts)
     const queue = [...starts]
 
-    while (0 < queue.length) {
+    while (queue.length > 0) {
       for (const next of edges.get(queue.shift()) ?? []) {
         if (!seen.has(next)) {
           seen.add(next)
@@ -418,7 +418,7 @@ export function isInherited(lock, name, scope = GROUP_SCOPE) {
 
 /** The id of an advisory: the last part of its URL (GHSA-xxxx-xxxx-xxxx), else the number npm gives it. */
 function advisoryId(via) {
-  const fromUrl = 'string' === typeof via.url ? via.url.split('/').filter(Boolean).pop() : ''
+  const fromUrl = typeof via.url === 'string' ? via.url.split('/').filter(Boolean).pop() : ''
 
   return fromUrl || String(via.source ?? '')
 }
@@ -430,7 +430,7 @@ export function parseNpmAudit(report) {
   for (const entry of Object.values(report?.vulnerabilities ?? {})) {
     for (const via of entry.via ?? []) {
       // A string only names another vulnerable package: the advisory itself is on that one.
-      if ('object' !== typeof via || null === via) continue
+      if (typeof via !== 'object' || via === null) continue
 
       const row = {
         id: advisoryId(via),
@@ -469,11 +469,11 @@ export function isNotable(severity) {
  */
 export function auditAlert(opened, project) {
   const notable = opened.filter(({ row }) => isNotable(row.severity))
-  if (0 === notable.length) return null
+  if (notable.length === 0) return null
 
   const silent = opened.length - notable.length
   const lines = notable.map(({ row, url }) => `${row.package} (${row.id}, ${row.severity || 'unknown'}): ${url}`)
-  if (0 < silent) lines.push(`${silent} more of a low severity, issue only.`)
+  if (silent > 0) lines.push(`${silent} more of a low severity, issue only.`)
 
   return { title: `Security advisories: ${notable.length} new in ${project}`, message: lines.join('\n') }
 }
@@ -630,7 +630,7 @@ async function mergeRequestOptions() {
   const user = await api('GET', '/user')
   const milestones = await api('GET', `/projects/${projectId()}/milestones?state=active`)
   const milestone = Array.isArray(milestones.data)
-    ? (milestones.data.find((item) => 'Maintenance' === item.title) ?? milestones.data[0])
+    ? (milestones.data.find((item) => item.title === 'Maintenance') ?? milestones.data[0])
     : null
 
   return {
@@ -643,7 +643,7 @@ async function mergeRequestOptions() {
 
 /** Merge the request when its pipeline succeeds. GitLab needs a moment to create the pipeline of a new request. */
 async function mergeWhenGreen(iid) {
-  for (let attempt = 0; 18 > attempt; attempt++) {
+  for (let attempt = 0; attempt < 18; attempt++) {
     const result = await api('PUT', `/projects/${projectId()}/merge_requests/${iid}/merge`, {
       merge_when_pipeline_succeeds: true,
       should_remove_source_branch: true,
@@ -681,15 +681,15 @@ function raiseVulnerableOverrides() {
 
   const report = JSON.parse(capture('npm', ['audit', '--json']) || '{}')
   const fixes = fixedOverrides(manifest.overrides, report.vulnerabilities, (name) =>
-    JSON.parse(capture('npm', ['view', name, 'versions', '--json']) || '[]')
+    JSON.parse(capture('npm', ['view', name, 'versions', '--json']) || '[]'),
   )
 
   for (const [name, version] of Object.entries(fixes)) {
-    if ('string' === typeof manifest.overrides[name]) manifest.overrides[name] = version
+    if (typeof manifest.overrides[name] === 'string') manifest.overrides[name] = version
     else manifest.overrides[name]['.'] = version
   }
 
-  if (0 < Object.keys(fixes).length) {
+  if (Object.keys(fixes).length > 0) {
     writeFileSync('package.json', `${JSON.stringify(manifest, null, 2)}\n`)
     run('npm', ['install', '--no-audit', '--no-fund'])
   }
@@ -712,12 +712,12 @@ async function update(config) {
   run('git', ['switch', '-C', branch])
 
   // A PHP project was prepared by the job before this one, in its own image: only npm is updated here.
-  if ('package.json' === ecosystem.file) {
+  if (ecosystem.file === 'package.json') {
     // The new versions wait for the cooling period. The packages of the group are trusted: no waiting for them.
     const rejected = rejectedPackages(config, await readPolicy('npm'))
-    const reject = 0 < rejected.length ? ['--reject', rejected.join(',')] : []
+    const reject = rejected.length > 0 ? ['--reject', rejected.join(',')] : []
     // An update started by the audit (UPDATE_URGENT=true) fixes an advisory: the fix is not made to wait.
-    const urgent = 'true' === process.env.UPDATE_URGENT
+    const urgent = process.env.UPDATE_URGENT === 'true'
     ncu([...(urgent ? [] : ['--cooldown', config.cooldown]), ...reject])
     ncu(['--filter', '@zairakai/*', ...reject])
     run('npm', ['install', '--no-audit', '--no-fund'])
@@ -730,9 +730,9 @@ async function update(config) {
     // The refresh is a bonus: when npm cannot respect the cooling date (a range that starts at a version younger than
     // the period, after an urgent update), it waits for the next run and the update goes on.
     try {
-      if (urgent || null === before) {
+      if (urgent || before === null) {
         run('npm', ['update', '--no-audit', '--no-fund'])
-      } else if (0 < names.length) {
+      } else if (names.length > 0) {
         run('npm', ['update', '--no-audit', '--no-fund', `--before=${before.toISOString()}`, ...names])
       }
     } catch (error) {
@@ -767,7 +767,7 @@ async function update(config) {
     files.push(PIPELINE_FILE)
   }
 
-  if ('' === run('git', ['status', '--porcelain', '--', ...files])) {
+  if (run('git', ['status', '--porcelain', '--', ...files]) === '') {
     log('Everything is up to date.')
     return
   }
@@ -817,7 +817,7 @@ async function release() {
 
   const existing = await openMergeRequests('&source_branch=develop&target_branch=main')
 
-  if (0 < existing.length) {
+  if (existing.length > 0) {
     await mergeWhenGreen(existing[0].iid)
     return
   }
@@ -867,7 +867,7 @@ async function tag(config) {
 
 /** True when the registry of the ecosystem (npm or Packagist) lists the version. */
 async function isAvailable(ecosystem, name, version) {
-  if ('npm' === ecosystem) {
+  if (ecosystem === 'npm') {
     return run('npm', ['view', `${name}@${version}`, 'version', '--prefer-online']) === version
   }
 
@@ -897,7 +897,7 @@ async function cascade(config) {
   // The registry needs a few minutes to list a new version: wait for it instead of waiting for a fixed hour.
   let available = false
 
-  for (let attempt = 0; 60 > attempt && !available; attempt++) {
+  for (let attempt = 0; attempt < 60 && !available; attempt++) {
     try {
       available = await isAvailable(ecosystem, name, version)
     } catch {
@@ -912,7 +912,7 @@ async function cascade(config) {
   for (const group of config.cascade.groups ?? []) {
     const projects = await api(
       'GET',
-      `/groups/${encodeURIComponent(group)}/projects?include_subgroups=true&archived=false&per_page=100`
+      `/groups/${encodeURIComponent(group)}/projects?include_subgroups=true&archived=false&per_page=100`,
     )
 
     for (const project of Array.isArray(projects.data) ? projects.data : []) {
@@ -921,7 +921,7 @@ async function cascade(config) {
       // Opt-in: a project is updated only if it has the same file.
       const file = await api(
         'GET',
-        `/projects/${project.id}/repository/files/${encodeURIComponent(CONFIG_FILE)}?ref=develop`
+        `/projects/${project.id}/repository/files/${encodeURIComponent(CONFIG_FILE)}?ref=develop`,
       )
 
       if (!file.ok) {
@@ -952,13 +952,13 @@ async function createIssue(title, description, labels, token) {
   // The assignee is given by the variable ISSUE_ASSIGNEE_ID; without it, the user of the token.
   let assignee = Number(process.env.ISSUE_ASSIGNEE_ID) || 0
 
-  if (0 === assignee) assignee = (await api('GET', '/user', undefined, token)).data?.id ?? 0
+  if (assignee === 0) assignee = (await api('GET', '/user', undefined, token)).data?.id ?? 0
 
   const issue = await api(
     'POST',
     `/projects/${projectId()}/issues`,
-    { title, description, labels, assignee_ids: 0 < assignee ? [assignee] : [] },
-    token
+    { title, description, labels, assignee_ids: assignee > 0 ? [assignee] : [] },
+    token,
   )
 
   if (!issue.ok) throw new Error(`The issue could not be created: ${secret(JSON.stringify(issue.data))}`)
@@ -985,7 +985,7 @@ async function closeResolved(titles, token) {
       'POST',
       `${path}/notes`,
       { body: `The audit of ${process.env.CI_PIPELINE_URL} no longer finds this advisory.` },
-      token
+      token,
     )
     const closed = await api('PUT', path, { state_event: 'close' }, token)
     log(closed.ok ? `Issue closed: ${issue.title}` : `Issue not closed (${closed.status}): ${issue.title}`)
@@ -1027,7 +1027,7 @@ async function audit() {
 
   const found = parseNpmAudit(JSON.parse(capture('npm', ['audit', '--json'])))
   const lock = existsSync('package-lock.json') ? JSON.parse(readFileSync('package-lock.json', 'utf8')) : null
-  const auto = 'true' === process.env.AUTO_FIX
+  const auto = process.env.AUTO_FIX === 'true'
   const token = process.env.FRESHNESS_TOKEN || process.env.GITLAB_TOKEN
   const titles = []
   const opened = []
@@ -1084,7 +1084,7 @@ async function audit() {
         { key: 'UPDATE_URGENT', value: 'true' },
       ],
     },
-    token
+    token,
   )
   log(started.ok ? 'Update started.' : `The update could not be started (${started.status}).`)
 }
@@ -1113,7 +1113,7 @@ async function policyValidate() {
     }
 
     for (const message of errors) console.error(`${file}: ${message}`)
-    failed ||= 0 < errors.length
+    failed ||= errors.length > 0
   }
 
   if (failed) throw new Error('The dependency policy is not valid.')
@@ -1127,7 +1127,7 @@ async function policyWatch() {
   const file = POLICY_FILES.npm
   const doc = JSON.parse(readFileSync(file, 'utf8'))
   const errors = validatePolicy(doc)
-  if (0 < errors.length) throw new Error(`${file} is not valid: ${errors.join(' ')}`)
+  if (errors.length > 0) throw new Error(`${file} is not valid: ${errors.join(' ')}`)
 
   const lifted = doc.entries.filter((entry) => {
     if (!entry.unblock) return false
@@ -1137,7 +1137,7 @@ async function policyWatch() {
     return isLifted(entry, ranges)
   })
 
-  if (0 === lifted.length) {
+  if (lifted.length === 0) {
     log('No entry can be lifted.')
     return
   }
@@ -1155,7 +1155,7 @@ async function policyWatch() {
   run('git', ['switch', '-C', branch])
   writeFileSync(
     file,
-    `${JSON.stringify({ ...doc, entries: doc.entries.filter((entry) => !lifted.includes(entry)) }, null, 2)}\n`
+    `${JSON.stringify({ ...doc, entries: doc.entries.filter((entry) => !lifted.includes(entry)) }, null, 2)}\n`,
   )
   run('git', ['add', file])
   run('git', ['commit', '-m', subject, '-m', 'The peer ranges of the packages that held it back now accept it.'])
@@ -1200,7 +1200,7 @@ async function policyCheck(_config, base) {
   })
 
   for (const problem of problems) console.error(problem)
-  if (0 < problems.length) throw new Error('The change updates a package that the dependency policy holds back.')
+  if (problems.length > 0) throw new Error('The change updates a package that the dependency policy holds back.')
 
   log('No package of the dependency policy is updated.')
 }
@@ -1213,9 +1213,9 @@ async function dependabotSync() {
   const text = readFileSync(DEPENDABOT_FILE, 'utf8')
   const synced = syncDependabot(text, names, 'npm')
 
-  if (null === synced) {
+  if (synced === null) {
     throw new Error(
-      `${DEPENDABOT_FILE} has no block "# BEGIN dependency-policy (npm)" ... "# END dependency-policy (npm)".`
+      `${DEPENDABOT_FILE} has no block "# BEGIN dependency-policy (npm)" ... "# END dependency-policy (npm)".`,
     )
   }
 
@@ -1240,10 +1240,10 @@ const modes = {
   'dependabot-sync': dependabotSync,
 }
 
-async function main(mode, argument) {
+export async function main(mode, argument) {
   if (!modes[mode]) {
     console.error(
-      'Usage: node update-dependencies.mjs update | release | tag | cascade | audit | policy | policy-validate'
+      'Usage: node update-dependencies.mjs update | release | tag | cascade | audit | policy | policy-validate',
     )
     process.exitCode = 1
     return

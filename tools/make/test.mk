@@ -1,6 +1,6 @@
 # Vitest Testing Targets
 # Delegates to scripts/test.sh with appropriate environment variables
-## -- 🧪 Testing --
+## —— 🧪 Testing ——
 
 .PHONY: test
 test:: ## Run all tests (without coverage)

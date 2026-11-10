@@ -1,7 +1,7 @@
 # Utility Targets
 # Miscellaneous commands for development
 
-## -- 🎼  Package Manager --
+## —— 🎼  Package Manager ——
 .PHONY: package-install
 package-install: ## Install dependencies
 	@echo "📦 Installing dependencies…"
@@ -22,7 +22,7 @@ package-validate: ## Validate package.json and lockfile sync
 	@npm install --package-lock-only --dry-run
 	@$(NPM_DIRECTORY_TOOLS_PROJECT_ROOT)/node_modules/.bin/sort-package-json --check package.json
 
-## -- 🧰 Utils --
+## —— 🧰 Utils ——
 .PHONY: outdated
 outdated: ## Check for outdated npm dependencies
 	@bash $(NPM_DIRECTORY_TOOLS_SCRIPTS_DIR)/outdated.sh

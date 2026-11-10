@@ -1,6 +1,6 @@
 # Help target
 
-## -- 📚 Help --
+## —— 📚 Help ——
 
 .PHONY: help
 help:: ## Show available commands

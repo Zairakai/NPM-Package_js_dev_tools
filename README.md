@@ -184,7 +184,7 @@ include:
     file: '.gitlab/ci/pipeline-js-package.yml'
 
 variables:
-  CACHE_KEY: "my-package-v1"
+  CACHE_KEY: "my-package-v2"
   NPM_PACKAGE_NAME: "@myorg/my-package"
 ```
 

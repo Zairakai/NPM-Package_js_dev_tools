@@ -364,7 +364,7 @@ get_package_info() {
 
     pkg_name="$(node -e "try{const p=require('${PROJECT_ROOT}/package.json');console.log(p.name||'')}catch(e){}" 2>/dev/null || echo "")"
     pkg_cache_key="${pkg_name##*/}"   # strip scope: @org/my-pkg → my-pkg
-    pkg_cache_key="${pkg_cache_key}-v1"
+    pkg_cache_key="${pkg_cache_key}-v2"
 
     echo "${pkg_name}|${pkg_cache_key}"
 }

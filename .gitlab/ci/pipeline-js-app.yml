@@ -23,7 +23,7 @@
 #       file: '.gitlab/ci/pipeline-js-app.yml'
 #
 #   variables:
-#     CACHE_KEY: "my-app-v1"
+#     CACHE_KEY: "my-app-v2"
 # ================================
 
 include:

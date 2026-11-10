@@ -11,7 +11,7 @@ include:
   - local: '.gitlab/ci/pipeline-js-package.yml'
 
 variables:
-  CACHE_KEY: 'js-dev-tools-v1'
+  CACHE_KEY: 'js-dev-tools-v2'
   NPM_PACKAGE_NAME: '@zairakai/js-dev-tools'
 
   # Self-hosted mode: scripts live in this repo, not in node_modules/

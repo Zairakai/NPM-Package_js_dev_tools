@@ -18,7 +18,7 @@
 #       file: '.gitlab/ci/pipeline-js-package.yml'
 #
 #   variables:
-#     CACHE_KEY: "my-package-v1"
+#     CACHE_KEY: "my-package-v2"
 #     NPM_PACKAGE_NAME: "@myorg/my-package"
 #
 # FOR dev-tools ITSELF (self-hosted mode):
@@ -27,7 +27,7 @@
 #     - local: '.gitlab/ci/pipeline-js-package.yml'
 #
 #   variables:
-#     CACHE_KEY: "dev-tools-v1"
+#     CACHE_KEY: "dev-tools-v2"
 #     NPM_PACKAGE_NAME: "@zairakai/js-dev-tools"
 #     JS_DEV_TOOLS_SCRIPTS: "scripts"
 # ================================

@@ -2,8 +2,8 @@
 # PIPELINE TEMPLATE - Laravel App JS/Frontend
 # ================================
 # Provides JS/Frontend CI jobs for a Laravel application.
-# Includes pipeline-js-package.yml (all js: jobs) and disables the
-# package-specific stages (build, publish, release) not relevant for apps.
+# Includes the files of js/ that an application needs (base, security, quality, updates) and none of what only a
+# package does (build, publish, release, documentation, cascade): nothing to disable.
 #
 # PHP jobs come from laravel-dev-tools (pipeline-laravel-app.yml).
 # All js: job names never conflict with php: job names.
@@ -27,23 +27,23 @@
 # ================================
 
 include:
-  # All js: jobs come from pipeline-js-package.yml - no duplication.
-  - project: 'zairakai/npm-packages/js-dev-tools'
-    ref: main
-    file: '.gitlab/ci/pipeline-js-package.yml'
+  - local: '.gitlab/ci/js/base.yml'
+  - local: '.gitlab/ci/js/security.yml'
+  - local: '.gitlab/ci/js/quality.yml'
+  - local: '.gitlab/ci/js/updates.yml'
 
 # ================================
 # STAGES
 # ================================
 # Merges with PHP pipeline stages - GitLab deduplicates identical names.
-# The build/publish/release stages from pipeline-js-package.yml are kept
-# in the merged list but stay empty (jobs below are disabled).
+# release is the stage of deps:release and deps:tag.
 stages:
   - security
   - install
   - validate
   - quality
   - test
+  - release
   - deploy
   - metrics
 
@@ -57,19 +57,3 @@ variables:
   # Note: GIT_CLEAN_FLAGS intentionally NOT set here.
   # pipeline-laravel-fullstack.yml sets the combined value to preserve
   # both vendor/ and node_modules/.
-
-# ================================
-# DISABLE package-specific jobs
-# Not relevant for a Laravel app (no npm publish or GitLab release).
-# ================================
-js:build:
-  rules:
-    - when: never
-
-js:publish:
-  rules:
-    - when: never
-
-js:release:
-  rules:
-    - when: never

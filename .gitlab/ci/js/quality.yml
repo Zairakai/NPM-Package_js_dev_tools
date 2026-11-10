@@ -1,0 +1,166 @@
+# ================================
+# JS PIPELINE - INSTALL, VALIDATE, QUALITY AND TEST
+# ================================
+# The jobs that every JS project runs, a package or an application.
+# Included by pipeline-js-package.yml and pipeline-js-app.yml.
+
+# ================================
+# INSTALL
+# ================================
+js:install:
+  extends:
+    - .js:base
+    - .js:cache-push
+    - .js:rules
+  stage: install
+  image: ${NODE_IMAGE}
+  script:
+    - npm ci --cache .npm --prefer-offline
+    - |
+      if [ -f /lib/ld-musl-x86_64.so.1 ]; then
+        npm install --no-save @oxc-resolver/binding-linux-x64-musl @rollup/rollup-linux-x64-musl
+      fi
+  artifacts:
+    paths:
+      - node_modules/
+    expire_in: 1 hour
+
+# ================================
+# VALIDATE
+# ================================
+js:validate:markdownlint:
+  extends:
+    - .js:base
+    - .js:cache
+    - .js:rules
+  stage: validate
+  image: ${NODE_IMAGE}
+  script:
+    - bash "$JS_DEV_TOOLS_SCRIPTS/markdownlint.sh"
+
+js:validate:shellcheck:
+  extends:
+    - .js:base
+    - .js:rules
+  stage: validate
+  image: ${SHELLCHECK_IMAGE}
+  before_script:
+    - apk add --no-cache bash
+  script:
+    - |
+      if [[ -d scripts/ ]]; then
+        bash "$JS_DEV_TOOLS_SCRIPTS/validate-shellcheck.sh"
+      else
+        echo "No scripts/ directory found - skipping ShellCheck"
+      fi
+
+# ================================
+# QUALITY
+# ================================
+js:quality:lint:
+  extends:
+    - .js:node
+    - .js:rules
+  stage: quality
+  script:
+    - bash "$JS_DEV_TOOLS_SCRIPTS/eslint.sh"
+  artifacts:
+    reports:
+      junit: build/reports/eslint.xml
+    paths:
+      - build/reports/
+    expire_in: 1 week
+    when: always
+
+js:quality:format:
+  extends:
+    - .js:node
+    - .js:rules
+  stage: quality
+  script:
+    - bash "$JS_DEV_TOOLS_SCRIPTS/prettier.sh"
+
+js:quality:stylelint:
+  extends:
+    - .js:node
+    - .js:rules
+  stage: quality
+  script:
+    - bash "$JS_DEV_TOOLS_SCRIPTS/stylelint.sh"
+
+js:quality:typecheck:
+  extends:
+    - .js:node
+    - .js:rules
+  stage: quality
+  script:
+    - |
+      if [ -f tsconfig.json ] && [ -f node_modules/.bin/tsc ]; then
+        bash "$JS_DEV_TOOLS_SCRIPTS/typecheck.sh"
+      else
+        echo "TypeScript not configured - skipping (add tsconfig.json + typescript to devDependencies)"
+      fi
+
+js:quality:knip:
+  extends:
+    - .js:node
+    - .js:rules
+  stage: quality
+  script:
+    - bash "$JS_DEV_TOOLS_SCRIPTS/knip.sh"
+
+js:quality:bats:
+  extends:
+    - .js:base
+    - .js:cache
+    - .js:rules
+  stage: quality
+  image: ${ALPINE_IMAGE}
+  before_script:
+    - apk add --no-cache bash bats git
+  script:
+    - |
+      if [[ -d tests/bats ]]; then
+        bats tests/bats --recursive
+      else
+        echo "No BATS tests found - skipping"
+      fi
+
+js:quality:outdated:
+  extends: .js:node
+  stage: quality
+  rules:
+    - if: $UPDATE_DEPENDENCIES == "true"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  script:
+    - bash "$JS_DEV_TOOLS_SCRIPTS/outdated.sh"
+  artifacts:
+    paths:
+      - build/reports/npm-outdated.json
+    expire_in: 1 week
+    when: always
+
+# ================================
+# TEST
+# ================================
+js:test:
+  extends:
+    - .js:base
+    - .js:cache
+    - .js:rules
+  stage: test
+  image: ${NODE_TEST_IMAGE}
+  script:
+    - CI=true bash "$JS_DEV_TOOLS_SCRIPTS/test.sh"
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+  artifacts:
+    reports:
+      junit: coverage/junit.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
+    paths:
+      - coverage/
+    expire_in: 1 week
+    when: always

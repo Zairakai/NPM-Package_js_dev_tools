@@ -1,0 +1,85 @@
+# ================================
+# JS PIPELINE - BASE
+# ================================
+# What every js: job shares: the runner, the variables and the hidden jobs that the other files extend.
+# Hidden jobs (extends:) replace the YAML anchors, which do not cross the files of an include.
+# Included by pipeline-js-package.yml and pipeline-js-app.yml, with the other files of this folder.
+
+# ================================
+# RUNNERS
+# ================================
+# Every job runs on the self-hosted runner of the group, whatever the shared runners enabled on the project.
+# Only js:publish leaves it: npm trusted publishing does not accept a self-hosted runner.
+default:
+  tags:
+    - zairakai-ci
+
+# ================================
+# DEFAULT VARIABLES
+# ================================
+variables:
+  # Paths to dev-tools scripts.
+  # Consumer projects do NOT need to override these.
+  # dev-tools itself overrides them in its own .gitlab-ci.yml.
+  JS_DEV_TOOLS_SCRIPTS: 'node_modules/@zairakai/js-dev-tools/scripts'
+
+  # ── NODE ──────────────────────────────────────────────────────────────────
+  NODE_VERSION: '24'
+  NODE_IMAGE: 'zairakai/node:latest-dev'
+  NODE_TEST_IMAGE: 'zairakai/node:latest-test'
+  # The jobs of the automatic updates sign with gpg: the image has it since 1.3.0. It is an exact version, published on
+  # Docker Hub like our other images: the runner pulls it, whatever the old image it keeps locally.
+  NODE_UPDATE_IMAGE: 'zairakai/node:1.3.0-dev'
+  SHELLCHECK_IMAGE: 'koalaman/shellcheck-alpine:v0.10.0'
+  RELEASE_CLI_IMAGE: 'registry.gitlab.com/gitlab-org/release-cli:v0.18.0'
+  ALPINE_IMAGE: 'alpine:3.18'
+
+  # ── GIT ───────────────────────────────────────────────────────────────────
+  GIT_DEPTH: 1
+  GIT_STRATEGY: fetch
+  GIT_CLEAN_FLAGS: '-ffdx -e node_modules/ -e .npm/'
+
+  # ── SECURITY ──────────────────────────────────────────────────────────────
+  SECRET_DETECTION_EXCLUDED_PATHS: 'node_modules/,vendor/,dist/,build/,coverage/,docs/,public/,storage/,.nuxt/,.output/,storybook-static/'
+
+# ================================
+# HIDDEN JOBS
+# ================================
+.js:base:
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+
+.js:cache:
+  cache:
+    key:
+      files:
+        - package-lock.json
+      prefix: $CACHE_KEY
+    paths:
+      - node_modules/
+      - .npm/
+    policy: pull
+
+.js:cache-push:
+  extends: .js:cache
+  cache:
+    policy: pull-push
+
+.js:node:
+  extends:
+    - .js:base
+    - .js:cache
+  image: ${NODE_IMAGE}
+  before_script:
+    - node --version
+    - npm --version
+
+# The jobs that run unless the pipeline is an automatic update (UPDATE_DEPENDENCIES=true).
+.js:rules:
+  rules:
+    - if: $UPDATE_DEPENDENCIES == "true"
+      when: never
+    - when: on_success

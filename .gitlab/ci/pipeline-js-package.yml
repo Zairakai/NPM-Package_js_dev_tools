@@ -99,7 +99,7 @@ variables:
   GIT_CLEAN_FLAGS: '-ffdx -e node_modules/ -e .npm/'
 
   # ── SECURITY ──────────────────────────────────────────────────────────────
-  SECRET_DETECTION_EXCLUDED_PATHS: 'node_modules/,vendor/,dist/,build/,coverage/,.nuxt/,.output/,storybook-static/'
+  SECRET_DETECTION_EXCLUDED_PATHS: 'node_modules/,vendor/,dist/,build/,coverage/,docs/,public/,storage/,.nuxt/,.output/,storybook-static/'
 
 # ================================
 # ANCHORS

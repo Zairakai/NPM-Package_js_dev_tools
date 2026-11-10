@@ -1,12 +1,10 @@
-# ================================
 # JS PIPELINE - INSTALL, VALIDATE, QUALITY AND TEST
-# ================================
+# ================
 # The jobs that every JS project runs, a package or an application.
 # Included by pipeline-js-package.yml and pipeline-js-app.yml.
 
-# ================================
 # INSTALL
-# ================================
+# ================
 js:install:
   extends:
     - .js:base
@@ -25,9 +23,8 @@ js:install:
       - node_modules/
     expire_in: 1 hour
 
-# ================================
 # VALIDATE
-# ================================
+# ================
 js:validate:markdownlint:
   extends:
     - .js:base
@@ -54,9 +51,8 @@ js:validate:shellcheck:
         echo "No scripts/ directory found - skipping ShellCheck"
       fi
 
-# ================================
 # QUALITY
-# ================================
+# ================
 js:quality:lint:
   extends:
     - .js:node
@@ -141,9 +137,8 @@ js:quality:outdated:
     expire_in: 1 week
     when: always
 
-# ================================
 # TEST
-# ================================
+# ================
 js:test:
   extends:
     - .js:base

@@ -1,6 +1,5 @@
-# ================================
 # JS PIPELINE - AUTOMATIC UPDATES
-# ================================
+# ================
 # See the handbook, policies/dependency-management.md. The exceptions of a project live in .dependency-update.json.
 # The group variable GITLAB_TOKEN (protected, so these jobs run on main, develop and the tags) opens the merge requests,
 # merges them and creates the tags. The pipeline of each merge request is the gate: nothing is tested by these jobs.

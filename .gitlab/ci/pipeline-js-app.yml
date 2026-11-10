@@ -1,6 +1,5 @@
-# ================================
 # PIPELINE TEMPLATE - Laravel App JS/Frontend
-# ================================
+# ================
 # Provides JS/Frontend CI jobs for a Laravel application.
 # Includes the files of parts/ that an application needs (base, security, quality, updates) and none of what only a
 # package does (build, publish, release, documentation, cascade): nothing to disable.
@@ -24,7 +23,6 @@
 #
 #   variables:
 #     CACHE_KEY: "my-app-v2"
-# ================================
 
 include:
   # security.yml first: the template of the secret detection it includes sets variables that base.yml overrides.
@@ -33,9 +31,8 @@ include:
   - local: '.gitlab/ci/parts/quality.yml'
   - local: '.gitlab/ci/parts/updates.yml'
 
-# ================================
 # STAGES
-# ================================
+# ================
 # Merges with PHP pipeline stages - GitLab deduplicates identical names.
 # release is the stage of deps:release and deps:tag.
 stages:
@@ -48,9 +45,8 @@ stages:
   - deploy
   - metrics
 
-# ================================
 # VARIABLES
-# ================================
+# ================
 variables:
   # Default cache key for app context (overridden per project via CACHE_KEY).
   CACHE_KEY: 'zairakai-laravel-app'

@@ -1,6 +1,5 @@
-# ================================
 # JS PIPELINE - SECURITY
-# ================================
+# ================
 # The secret detection of GitLab and the check of the format of a tag.
 # Included by pipeline-js-package.yml and pipeline-js-app.yml.
 

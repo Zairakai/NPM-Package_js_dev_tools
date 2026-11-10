@@ -1,13 +1,11 @@
-# ================================
 # JS PIPELINE - BUILD, PUBLISH, RELEASE AND DOCUMENTATION
-# ================================
+# ================
 # What only a package does: build it, publish it on npm, release it, publish its documentation and start the update of the
 # projects that use it. An application does not include this file.
 # Included by pipeline-js-package.yml.
 
-# ================================
 # BUILD
-# ================================
+# ================
 js:build:
   extends: .js:node
   stage: build
@@ -30,9 +28,8 @@ js:build:
     - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_MERGE_REQUEST_ID
 
-# ================================
 # PUBLISH
-# ================================
+# ================
 js:publish:
   extends:
     - .js:base
@@ -68,9 +65,8 @@ js:publish:
     name: production
     url: https://www.npmjs.com/package/${NPM_PACKAGE_NAME}
 
-# ================================
 # RELEASE
-# ================================
+# ================
 js:release:
   extends: .js:base
   stage: release
@@ -108,9 +104,8 @@ js:release:
       - release_notes.md
     expire_in: 1 year
 
-# ================================
 # DOCUMENTATION
-# ================================
+# ================
 # The documentation site (GitLab Pages): every released version, each built from its own tag, and next, with a version
 # selector. See docs/scripts/publish.sh in the project. It comes with the release: a tag is always a release of main, and
 # nothing is published if the publication failed. The dependencies are the ones installed once by js:install.
@@ -145,9 +140,8 @@ pages:
       exists:
         - docs/scripts/publish.sh
 
-# ================================
 # CASCADE
-# ================================
+# ================
 # After the publication, start the update of the projects that use this package (only if the project has a cascade).
 deps:cascade:
   extends: .js:base

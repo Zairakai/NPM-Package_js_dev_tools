@@ -2,7 +2,7 @@
 # PIPELINE TEMPLATE - NPM Package
 # ================================
 # Shared pipeline template for NPM packages in the Zairakai namespace.
-# The jobs are in the files of this folder, one per role, which pipeline-js-app.yml includes too (the part that an application
+# The jobs are in the files of parts/, one per role, which pipeline-js-app.yml includes too (the part that an application
 # needs): base (runner, variables, hidden jobs), security, quality (install, validate, quality, test), updates, and
 # publish (build, publish, release, documentation, cascade: this file only).
 # The files share their hidden jobs with extends:, because YAML anchors do not cross the files of an include.
@@ -34,11 +34,11 @@
 
 include:
   # security.yml first: the template of the secret detection it includes sets variables that base.yml overrides.
-  - local: '.gitlab/ci/security.yml'
-  - local: '.gitlab/ci/base.yml'
-  - local: '.gitlab/ci/quality.yml'
-  - local: '.gitlab/ci/updates.yml'
-  - local: '.gitlab/ci/publish.yml'
+  - local: '.gitlab/ci/parts/security.yml'
+  - local: '.gitlab/ci/parts/base.yml'
+  - local: '.gitlab/ci/parts/quality.yml'
+  - local: '.gitlab/ci/parts/updates.yml'
+  - local: '.gitlab/ci/parts/publish.yml'
 
 # ================================
 # STAGES

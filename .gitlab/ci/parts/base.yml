@@ -3,7 +3,7 @@
 # ================================
 # What every js: job shares: the workflow, the runner, the variables and the hidden jobs that the other files extend.
 # Hidden jobs (extends:) replace the YAML anchors, which do not cross the files of an include.
-# Included by pipeline-js-package.yml and pipeline-js-app.yml, with the other files of this folder.
+# Included by pipeline-js-package.yml and pipeline-js-app.yml, with the other files of parts/.
 
 # ================================
 # WORKFLOW

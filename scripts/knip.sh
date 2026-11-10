@@ -25,15 +25,15 @@ KNIP_BIN="${BIN_DIR}/knip"
 log_header "Knip - Dead Code Detection"
 
 if ! ensure_bin_optional "$KNIP_BIN" "knip"; then
-    log_info "Install: npm install --save-dev knip"
-    exit 0
+  log_info "Install: npm install --save-dev knip"
+  exit 0
 fi
 
 KNIP_ARGS=()
 
 if [[ -n "$KNIP_CONFIG" ]]; then
-    log_step "Using configuration: ${KNIP_CONFIG#"$PROJECT_ROOT"/}"
-    KNIP_ARGS+=(--config "$KNIP_CONFIG")
+  log_step "Using configuration: ${KNIP_CONFIG#"$PROJECT_ROOT"/}"
+  KNIP_ARGS+=(--config "$KNIP_CONFIG")
 fi
 
 "$KNIP_BIN" "${KNIP_ARGS[@]}"

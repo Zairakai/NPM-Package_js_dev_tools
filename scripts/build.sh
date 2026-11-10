@@ -27,37 +27,37 @@ TSC_BIN="${BIN_DIR}/tsc"
 log_header "Build"
 
 if [[ -f "${PROJECT_ROOT}/vite.config.ts" ]] || [[ -f "${PROJECT_ROOT}/vite.config.js" ]]; then
-    log_info "Builder: Vite (vite.config detected - running npm run build)"
-    npm run build
-    log_success "Build complete - output in dist/"
+  log_info "Builder: Vite (vite.config detected - running npm run build)"
+  npm run build
+  log_success "Build complete - output in dist/"
 
 elif [[ -f "$TSUP_BIN" ]]; then
-    log_info "Builder: tsup (fast, esbuild-based)"
-    if [[ -n "$TSUP_CONFIG" ]]; then
-        "$TSUP_BIN" --config "$TSUP_CONFIG"
-    else
-        "$TSUP_BIN"
-    fi
-    log_success "Build complete - output in dist/"
+  log_info "Builder: tsup (fast, esbuild-based)"
+  if [[ -n "$TSUP_CONFIG" ]]; then
+    "$TSUP_BIN" --config "$TSUP_CONFIG"
+  else
+    "$TSUP_BIN"
+  fi
+  log_success "Build complete - output in dist/"
 
 elif [[ -f "$TSC_BIN" ]]; then
-    log_info "Builder: tsc (official TypeScript compiler)"
+  log_info "Builder: tsc (official TypeScript compiler)"
 
-    if [[ ! -f "${PROJECT_ROOT}/tsconfig.json" ]]; then
-        log_error "No tsconfig.json found at project root"
-        log_info "Publish one with:"
-        log_info "  bash node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh --publish=tsconfig"
-        exit 1
-    fi
+  if [[ ! -f "${PROJECT_ROOT}/tsconfig.json" ]]; then
+    log_error "No tsconfig.json found at project root"
+    log_info "Publish one with:"
+    log_info "  bash node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh --publish=tsconfig"
+    exit 1
+  fi
 
-    log_info "Config: tsconfig.json"
-    "$TSC_BIN"
-    log_success "Build complete"
+  log_info "Config: tsconfig.json"
+  "$TSC_BIN"
+  log_success "Build complete"
 
 else
-    log_error "No builder found. Expected one of: vite.config.ts, tsup, tsc"
-    log_info "Install one of:"
-    log_info "  npm install --save-dev tsup       (recommended for pure TS packages)"
-    log_info "  npm install --save-dev typescript (for simple transpilation)"
-    exit 1
+  log_error "No builder found. Expected one of: vite.config.ts, tsup, tsc"
+  log_info "Install one of:"
+  log_info "  npm install --save-dev tsup       (recommended for pure TS packages)"
+  log_info "  npm install --save-dev typescript (for simple transpilation)"
+  exit 1
 fi

@@ -37,15 +37,15 @@ echo ""
 
 # 3. Static Analysis (Optional, Project aware)
 if [[ -f "${PROJECT_ROOT}/tsconfig.json" ]] && [[ -f "${BIN_DIR}/tsc" ]]; then
-    run_check "TypeScript (tsc --noEmit)" "bash '${SCRIPT_DIR}/typecheck.sh'" || true
-    echo ""
+  run_check "TypeScript (tsc --noEmit)" "bash '${SCRIPT_DIR}/typecheck.sh'" || true
+  echo ""
 else
-    log_info "TypeScript: no tsconfig.json or tsc - skipping"
-    echo ""
+  log_info "TypeScript: no tsconfig.json or tsc - skipping"
+  echo ""
 fi
 
 if exit_with_error_count "Quality Checks"; then
-    exit 0
+  exit 0
 else
-    exit 1
+  exit 1
 fi

@@ -33,8 +33,9 @@
 # ================================
 
 include:
-  - local: '.gitlab/ci/base.yml'
+  # security.yml first: the template of the secret detection it includes sets variables that base.yml overrides.
   - local: '.gitlab/ci/security.yml'
+  - local: '.gitlab/ci/base.yml'
   - local: '.gitlab/ci/quality.yml'
   - local: '.gitlab/ci/updates.yml'
   - local: '.gitlab/ci/publish.yml'

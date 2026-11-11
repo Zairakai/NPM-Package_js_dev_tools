@@ -183,6 +183,39 @@ teardown() {
   assert_file_exists "${FAKE_PROJECT}/config/dev-tools/.markdownlintignore"
 }
 
+# Root bridges
+# ================
+
+@test "setup-project.sh --publish=quality creates the ESLint bridge at the root" {
+  cd "$FAKE_PROJECT"
+
+  run bash "node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh" --publish=quality
+
+  assert_file_exists "${FAKE_PROJECT}/eslint.config.mjs"
+  run grep -F "export { default } from './config/dev-tools/eslint.config.js'" "${FAKE_PROJECT}/eslint.config.mjs"
+  [ "$status" -eq 0 ]
+}
+
+@test "setup-project.sh --publish=style creates the Prettier and Stylelint bridges at the root" {
+  cd "$FAKE_PROJECT"
+
+  run bash "node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh" --publish=style
+
+  assert_file_exists "${FAKE_PROJECT}/prettier.config.mjs"
+  assert_file_exists "${FAKE_PROJECT}/stylelint.config.mjs"
+  assert_file_exists "${FAKE_PROJECT}/.markdownlint.json"
+}
+
+@test "setup-project.sh does not create a bridge when the project has its own config" {
+  cd "$FAKE_PROJECT"
+  echo "export default []" > "${FAKE_PROJECT}/eslint.config.js"
+
+  run bash "node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh" --publish=quality
+
+  [ ! -f "${FAKE_PROJECT}/eslint.config.mjs" ]
+  assert_file_exists "${FAKE_PROJECT}/config/dev-tools/eslint.config.js"
+}
+
 # --publish=all
 # ================
 

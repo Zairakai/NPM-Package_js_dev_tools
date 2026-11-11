@@ -183,6 +183,101 @@ teardown() {
   assert_file_exists "${FAKE_PROJECT}/config/dev-tools/.markdownlintignore"
 }
 
+# Root bridges
+# ================
+
+@test "setup-project.sh --publish=quality creates the ESLint bridge at the root" {
+  cd "$FAKE_PROJECT"
+
+  run bash "node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh" --publish=quality
+
+  assert_file_exists "${FAKE_PROJECT}/eslint.config.mjs"
+  run grep -F "export { default } from './config/dev-tools/eslint.config.js'" "${FAKE_PROJECT}/eslint.config.mjs"
+  [ "$status" -eq 0 ]
+}
+
+@test "setup-project.sh --publish=style creates the Prettier and Stylelint bridges at the root" {
+  cd "$FAKE_PROJECT"
+
+  run bash "node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh" --publish=style
+
+  assert_file_exists "${FAKE_PROJECT}/prettier.config.mjs"
+  assert_file_exists "${FAKE_PROJECT}/stylelint.config.mjs"
+  assert_file_exists "${FAKE_PROJECT}/.markdownlint.json"
+}
+
+@test "setup-project.sh does not create a bridge when the project has its own config" {
+  cd "$FAKE_PROJECT"
+  echo "export default []" > "${FAKE_PROJECT}/eslint.config.js"
+
+  run bash "node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh" --publish=quality
+
+  [ ! -f "${FAKE_PROJECT}/eslint.config.mjs" ]
+  assert_file_exists "${FAKE_PROJECT}/config/dev-tools/eslint.config.js"
+}
+
+@test "setup-project.sh --publish=testing creates the Vitest bridge at the root" {
+  cd "$FAKE_PROJECT"
+
+  run bash "node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh" --publish=testing
+
+  assert_file_exists "${FAKE_PROJECT}/vitest.config.mjs"
+  run grep -F "export { default } from './config/dev-tools/vitest.config.js'" "${FAKE_PROJECT}/vitest.config.mjs"
+  [ "$status" -eq 0 ]
+}
+
+@test "setup-project.sh does not create a Vitest bridge when the project has a vite.config" {
+  cd "$FAKE_PROJECT"
+  echo "export default {}" > "${FAKE_PROJECT}/vite.config.js"
+
+  run bash "node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh" --publish=testing
+
+  [ ! -f "${FAKE_PROJECT}/vitest.config.mjs" ]
+}
+
+@test "setup-project.sh --publish=style copies the ignore files at the root" {
+  cd "$FAKE_PROJECT"
+
+  run bash "node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh" --publish=style
+
+  for name in .prettierignore .stylelintignore .markdownlintignore; do
+    assert_file_exists "${FAKE_PROJECT}/${name}"
+    run cmp "${FAKE_PROJECT}/${name}" "${FAKE_PROJECT}/config/dev-tools/${name}"
+    [ "$status" -eq 0 ]
+  done
+}
+
+@test "setup-project.sh keeps the ignore file that the project already has at the root" {
+  cd "$FAKE_PROJECT"
+  echo "my-own-folder/" > "${FAKE_PROJECT}/.prettierignore"
+
+  run bash "node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh" --publish=style
+
+  run cat "${FAKE_PROJECT}/.prettierignore"
+  [ "$output" = "my-own-folder/" ]
+}
+
+@test "setup-project.sh --force refreshes the ignore file that the project has at the root" {
+  cd "$FAKE_PROJECT"
+  echo "my-own-folder/" > "${FAKE_PROJECT}/.prettierignore"
+
+  run bash "node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh" --publish=style --force
+
+  run cmp "${FAKE_PROJECT}/.prettierignore" "${FAKE_PROJECT}/config/dev-tools/.prettierignore"
+  [ "$status" -eq 0 ]
+}
+
+@test "setup-project.sh --publish creates the thin files and the ignore copies at the root" {
+  cd "$FAKE_PROJECT"
+
+  run bash "node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh" --publish
+
+  for name in eslint.config.mjs prettier.config.mjs stylelint.config.mjs vitest.config.mjs .markdownlint.json \
+    .prettierignore .stylelintignore .markdownlintignore; do
+    assert_file_exists "${FAKE_PROJECT}/${name}"
+  done
+}
+
 # --publish=all
 # ================
 

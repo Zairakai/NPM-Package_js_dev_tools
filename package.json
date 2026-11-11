@@ -103,7 +103,7 @@
     "smol-toml": "1.9.0"
   },
   "dependencies": {
-    "@stanislas-poisson/js-dev-tools": "^2.0.0",
+    "@stanislas-poisson/js-dev-tools": "^2.1.1",
     "eslint": "^10.14.0",
     "markdownlint-cli2": "^0.24.0",
     "prettier": "^3.9.10",
@@ -112,7 +112,7 @@
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^5.1.0",
-    "knip": "^6.44.1",
+    "knip": "^6.44.2",
     "sort-package-json": "^4.1.0",
     "typescript": "^6.0.3",
     "vitest": "^5.1.0",

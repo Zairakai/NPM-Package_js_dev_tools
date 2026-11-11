@@ -112,7 +112,7 @@
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^5.1.0",
-    "knip": "^6.44.1",
+    "knip": "^6.44.2",
     "sort-package-json": "^4.1.0",
     "typescript": "^6.0.3",
     "vitest": "^5.1.0",

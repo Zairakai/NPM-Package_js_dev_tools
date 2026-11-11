@@ -84,6 +84,8 @@ beforeEach(() => {
   world.exec = defaultExec
   world.route = routes()
   Object.assign(process.env, ENV)
+  // A pipeline of a tag defines it: the tests that need a tag set it themselves
+  delete process.env.CI_COMMIT_TAG
   process.exitCode = undefined
 
   vi.stubGlobal(

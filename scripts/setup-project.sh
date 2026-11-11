@@ -574,6 +574,75 @@ publish_gitlab_ci() {
   fi
 }
 
+# Root bridges for IDEs and editor extensions
+# ================
+# Editor extensions look for the config of a tool at the root of the project, in
+# the folder of the edited file and its parents, never in config/dev-tools/.
+# A bridge is a one-line file that re-exports the published config. It holds no
+# rule of its own, and is created only when the project has no config of that
+# tool yet. The commands of the project (make, npm scripts) keep using
+# config/dev-tools/ directly: the bridge is a convenience for the editor.
+
+create_root_bridge() {
+  local key="$1"
+  local bridge="${key}.config.mjs"
+  local published="config/dev-tools/${key}.config.js"
+  local existing=false
+  local pattern
+
+  case "$key" in
+    eslint)    pattern="eslint.config.js eslint.config.mjs eslint.config.cjs eslint.config.ts eslint.config.mts eslint.config.cts" ;;
+    prettier)  pattern="prettier.config.js prettier.config.mjs prettier.config.cjs prettier.config.ts .prettierrc .prettierrc.json .prettierrc.yaml .prettierrc.yml .prettierrc.js .prettierrc.mjs .prettierrc.cjs" ;;
+    stylelint) pattern="stylelint.config.js stylelint.config.mjs stylelint.config.cjs .stylelintrc .stylelintrc.json .stylelintrc.yaml .stylelintrc.yml .stylelintrc.js .stylelintrc.mjs .stylelintrc.cjs" ;;
+    # A vite.config.* is read by Vitest when there is no vitest.config.*: the bridge would replace it
+    vitest)    pattern="vitest.config.js vitest.config.mjs vitest.config.cjs vitest.config.ts vitest.workspace.js vitest.workspace.ts vite.config.js vite.config.mjs vite.config.cjs vite.config.ts" ;;
+    *) return 0 ;;
+  esac
+
+  local name
+  for name in $pattern; do
+    [[ -f "${PROJECT_ROOT}/${name}" ]] && existing=true
+  done
+
+  if [[ "$existing" == "true" ]] || [[ ! -f "${PROJECT_ROOT}/${published}" ]]; then
+    return 0
+  fi
+
+  printf "// Bridge for editor extensions: the rules live in %s\nexport { default } from './%s'\n" "$published" "$published" > "${PROJECT_ROOT}/${bridge}"
+  track_created "${bridge} (root - re-exports ${published})"
+  log_success "Created: ${bridge} → re-exports ${published}"
+}
+
+# Root copies of the ignore files
+# ================
+# An ignore file cannot extend another file, and npm does not publish symbolic
+# links: the root gets a copy of the file published in config/dev-tools/. It is
+# created only when the project has none, --force refreshes it.
+
+copy_root_ignore() {
+  local key="$1"
+  local name
+
+  case "$key" in
+    prettierignore)     name=".prettierignore" ;;
+    stylelintignore)    name=".stylelintignore" ;;
+    markdownlintignore) name=".markdownlintignore" ;;
+    *) return 0 ;;
+  esac
+
+  local source="${PROJECT_ROOT}/config/dev-tools/${name}"
+  local target="${PROJECT_ROOT}/${name}"
+
+  [[ -f "$source" ]] || return 0
+  if [[ -f "$target" ]] && [[ "$FORCE_OVERWRITE" != "true" ]]; then
+    return 0
+  fi
+
+  cp "$source" "$target"
+  track_created "${name} (root - copy of config/dev-tools/${name})"
+  log_success "Created: ${name} → copy of config/dev-tools/${name}"
+}
+
 do_publish() {
   local -a keys
   read -ra keys <<< "$(resolve_publish_keys "$PUBLISH_TARGET")"
@@ -610,6 +679,11 @@ do_publish() {
       "${DEV_TOOLS_ROOT}/${source_rel}" \
       "${PROJECT_ROOT}/${target_rel}" \
       "$key"
+
+    # Editor extensions look at the root: thin files for the tools whose config is a
+    # JavaScript file, and copies of the ignore files (they cannot extend a file).
+    create_root_bridge "$key"
+    copy_root_ignore "$key"
 
     # After publishing markdownlint config to config/dev-tools/, also create a root
     # .markdownlint.json that extends it - IDEs and editor extensions look at root.

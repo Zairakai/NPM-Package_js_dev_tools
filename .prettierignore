@@ -1,0 +1,19 @@
+build/
+coverage/
+dist/
+docs/
+node_modules/
+public/
+storybook-static/
+vendor/
+.nuxt/
+.output/
+*.lock
+*.md
+*.min.css
+*.min.js
+gl-*.json
+
+# Laravel: the runtime files and the cache are not source
+storage/
+bootstrap/cache/

@@ -12,7 +12,6 @@ export default {
     ...baseConfig.ignoreDependencies,
     // The tools are run by the shell scripts of the package (scripts/*.sh), which Knip does not read
     'eslint',
-    'markdownlint-cli2',
     'prettier',
     'stylelint',
   ],

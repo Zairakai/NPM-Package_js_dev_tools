@@ -8,7 +8,7 @@
 #   - type: feat, fix, docs, style, refactor, perf, test, chore, ci or build
 #   - scope: optional, in lowercase
 #   - #TICKET: the number of the issue
-#   - the first line has 72 characters at most, and the second line is blank
+#   - the subject (the text after the ticket) has 50 characters at most (Pro Git), and the second line is blank
 #
 # A work in progress follows the same format. The messages that Git writes itself
 # (Merge, Revert, fixup!, squash!) are accepted as they are.
@@ -24,7 +24,7 @@ case "$first_line" in
   "Merge "* | "Revert \""* | "fixup! "* | "squash! "* | "amend! "*) exit 0 ;;
 esac
 
-PATTERN='^(feat|fix|docs|style|refactor|perf|test|chore|ci|build)(\([a-z0-9][a-z0-9._/-]*\))?: #[0-9]+ [^[:space:]].*$'
+PATTERN='^(feat|fix|docs|style|refactor|perf|test|chore|ci|build)(\([a-z0-9][a-z0-9._/-]*\))?: #[0-9]+ ([^[:space:]].*)$'
 
 fail() {
   echo ""
@@ -47,8 +47,11 @@ if ! [[ $first_line =~ $PATTERN ]]; then
   fail "Invalid commit message format"
 fi
 
-if [[ ${#first_line} -gt 72 ]]; then
-  fail "The first line has ${#first_line} characters: the limit is 72"
+# The limit counts the subject only: the type, the scope and the ticket do not use its 50 characters
+subject="${BASH_REMATCH[3]}"
+
+if [[ ${#subject} -gt 50 ]]; then
+  fail "The subject has ${#subject} characters: the limit is 50"
 fi
 
 if [[ -n $second_line ]]; then

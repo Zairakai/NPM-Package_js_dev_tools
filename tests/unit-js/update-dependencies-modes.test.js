@@ -42,10 +42,13 @@ const ENV = {
   RELEASE_SIGNER_NAME: 'Signer',
   RELEASE_SIGNER_EMAIL: 'signer@example.com',
 }
-const POLICY = { entries: [{ package: 'typescript', reason: 'peer', since: '2026-10-11' }] }
+const POLICY = {
+  entries: [{ package: 'typescript', reason: 'peer', since: '2026-10-11' }],
+}
 
 const defaultExec = (command, args) => {
-  if (command === 'gpg' && args[0] === '--list-secret-keys') return 'sec\nfpr:::::::::ABCDEF:'
+  if (command === 'gpg' && args[0] === '--list-secret-keys')
+    return 'sec\nfpr:::::::::ABCDEF:'
 
   return ''
 }
@@ -56,7 +59,8 @@ const routes =
   (method, url, body) => {
     if (url.endsWith(POLICY_URL)) return { status: 200, body: POLICY }
     if (url.endsWith('/user')) return { status: 200, body: { id: 7 } }
-    if (url.includes('/milestones')) return { status: 200, body: [{ id: 3, title: 'Maintenance' }] }
+    if (url.includes('/milestones'))
+      return { status: 200, body: [{ id: 3, title: 'Maintenance' }] }
 
     return extra(method, url, body)
   }
@@ -71,8 +75,11 @@ const parseBody = (text) => {
 }
 
 const requested = (method, fragment) =>
-  world.requests.filter((request) => request.method === method && request.url.includes(fragment))
-const ran = (fragment) => world.commands.some((command) => command.includes(fragment))
+  world.requests.filter(
+    (request) => request.method === method && request.url.includes(fragment),
+  )
+const ran = (fragment) =>
+  world.commands.some((command) => command.includes(fragment))
 
 let info
 let error
@@ -94,10 +101,21 @@ beforeEach(() => {
       const method = init.method ?? 'GET'
       const body = parseBody(init.body)
       world.requests.push({ method, url: String(url), body })
-      const reply = world.route(method, String(url), body) ?? { status: 404, body: null }
-      const text = reply.body === null || reply.body === undefined ? '' : JSON.stringify(reply.body)
+      const reply = world.route(method, String(url), body) ?? {
+        status: 404,
+        body: null,
+      }
+      const text =
+        reply.body === null || reply.body === undefined
+          ? ''
+          : JSON.stringify(reply.body)
 
-      return { ok: reply.status < 400, status: reply.status, text: async () => text, json: async () => reply.body }
+      return {
+        ok: reply.status < 400,
+        status: reply.status,
+        text: async () => text,
+        json: async () => reply.body,
+      }
     }),
   )
   // The waits of the script (10 s, 30 s) are not waited for.
@@ -126,8 +144,10 @@ afterEach(() => {
   }
 })
 
-const said = (text) => info.mock.calls.some(([message]) => String(message).includes(text))
-const failed = (text) => error.mock.calls.some(([message]) => String(message).includes(text))
+const said = (text) =>
+  info.mock.calls.some(([message]) => String(message).includes(text))
+const failed = (text) =>
+  error.mock.calls.some(([message]) => String(message).includes(text))
 
 describe('main', () => {
   it('refuses an unknown mode', async () => {
@@ -148,7 +168,9 @@ describe('main', () => {
 
   it('masks the token in a failed command', async () => {
     world.exec = () => {
-      throw Object.assign(new Error('x'), { stderr: 'fatal: secret-token leaked' })
+      throw Object.assign(new Error('x'), {
+        stderr: 'fatal: secret-token leaked',
+      })
     }
 
     await main('tag')
@@ -189,7 +211,10 @@ describe('policy-check', () => {
   })
 
   it('passes when no package of the policy changes', async () => {
-    world.files.set('package.json', JSON.stringify({ devDependencies: { typescript: '^6.0.0' } }))
+    world.files.set(
+      'package.json',
+      JSON.stringify({ devDependencies: { typescript: '^6.0.0' } }),
+    )
     world.exec = (command, args) =>
       command === 'git' && args[1] === 'origin/develop:package.json'
         ? JSON.stringify({ devDependencies: { typescript: '^6.0.0' } })
@@ -201,7 +226,10 @@ describe('policy-check', () => {
   })
 
   it('fails when a package of the policy is updated', async () => {
-    world.files.set('package.json', JSON.stringify({ devDependencies: { typescript: '^7.0.0' } }))
+    world.files.set(
+      'package.json',
+      JSON.stringify({ devDependencies: { typescript: '^7.0.0' } }),
+    )
     world.exec = (command, args) =>
       command === 'git' && args[1] === 'origin/develop:package.json'
         ? JSON.stringify({ devDependencies: { typescript: '^6.0.0' } })
@@ -215,7 +243,10 @@ describe('policy-check', () => {
 
   it('stops when the policy cannot be read, and sends an alert when NTFY_URL is set', async () => {
     process.env.NTFY_URL = 'https://ntfy.example/topic'
-    world.route = (method, url) => (url.endsWith(POLICY_URL) ? { status: 500, body: null } : { status: 200, body: {} })
+    world.route = (method, url) =>
+      url.endsWith(POLICY_URL)
+        ? { status: 500, body: null }
+        : { status: 200, body: {} }
 
     await main('policy-check', 'origin/develop')
 
@@ -229,7 +260,12 @@ describe('dependabot-sync', () => {
     [
       'updates:',
       '    # BEGIN dependency-policy (npm)',
-      ...(names.length > 0 ? ['    ignore:', ...names.map((name) => `      - dependency-name: '${name}'`)] : []),
+      ...(names.length > 0
+        ? [
+            '    ignore:',
+            ...names.map((name) => `      - dependency-name: '${name}'`),
+          ]
+        : []),
       '    # END dependency-policy (npm)',
     ].join('\n')
 
@@ -260,13 +296,17 @@ describe('dependabot-sync', () => {
 
     await main('dependabot-sync')
 
-    expect(world.files.get('.github/dependabot.yml')).toBe(block(['typescript']))
+    expect(world.files.get('.github/dependabot.yml')).toBe(
+      block(['typescript']),
+    )
     expect(said('are updated: typescript')).toBe(true)
   })
 })
 
 describe('cascade', () => {
-  const config = JSON.stringify({ cascade: { groups: ['zairakai/npm-packages'] } })
+  const config = JSON.stringify({
+    cascade: { groups: ['zairakai/npm-packages'] },
+  })
 
   beforeEach(() => {
     world.files.set('package.json', JSON.stringify({ name: '@zairakai/demo' }))
@@ -302,9 +342,11 @@ describe('cascade', () => {
           ],
         }
       }
-      if (url.includes('/projects/3/repository/files')) return { status: 404, body: null }
+      if (url.includes('/projects/3/repository/files'))
+        return { status: 404, body: null }
       if (url.includes('/repository/files')) return { status: 200, body: {} }
-      if (url.endsWith('/projects/4/pipeline')) return { status: 400, body: null }
+      if (url.endsWith('/projects/4/pipeline'))
+        return { status: 400, body: null }
       if (url.endsWith('/pipeline')) return { status: 201, body: {} }
 
       return null
@@ -315,7 +357,9 @@ describe('cascade', () => {
     expect(said('opted: update started.')).toBe(true)
     expect(said('not-opted: no .dependency-update.json, skipped.')).toBe(true)
     expect(said('broken: not started (400).')).toBe(true)
-    expect(requested('POST', '/projects/2/pipeline')[0].body.variables[0]).toEqual({
+    expect(
+      requested('POST', '/projects/2/pipeline')[0].body.variables[0],
+    ).toEqual({
       key: 'UPDATE_DEPENDENCIES',
       value: 'true',
     })
@@ -340,7 +384,10 @@ describe('cascade', () => {
     world.files.set('.dependency-update.json', config)
     world.route = (method, url) => {
       if (url.includes('packagist'))
-        return { status: 200, body: { packages: { 'zairakai/demo': [{ version: '2.0.0' }] } } }
+        return {
+          status: 200,
+          body: { packages: { 'zairakai/demo': [{ version: '2.0.0' }] } },
+        }
 
       return { status: 200, body: [] }
     }
@@ -369,9 +416,12 @@ describe('cascade', () => {
 describe('release', () => {
   it('opens a merge request from develop into main and sets it to merge', async () => {
     world.route = routes((method, url) => {
-      if (method === 'GET' && url.includes('/merge_requests')) return { status: 200, body: [] }
-      if (method === 'POST' && url.endsWith('/merge_requests')) return { status: 201, body: { iid: 12 } }
-      if (method === 'PUT' && url.endsWith('/12/merge')) return { status: 200, body: {} }
+      if (method === 'GET' && url.includes('/merge_requests'))
+        return { status: 200, body: [] }
+      if (method === 'POST' && url.endsWith('/merge_requests'))
+        return { status: 201, body: { iid: 12 } }
+      if (method === 'PUT' && url.endsWith('/12/merge'))
+        return { status: 200, body: {} }
 
       return { status: 200, body: [] }
     })
@@ -384,7 +434,8 @@ describe('release', () => {
 
   it('sets the open merge request to merge', async () => {
     world.route = routes((method, url) => {
-      if (method === 'GET' && url.includes('source_branch=develop')) return { status: 200, body: [{ iid: 9 }] }
+      if (method === 'GET' && url.includes('source_branch=develop'))
+        return { status: 200, body: [{ iid: 9 }] }
       if (method === 'PUT') return { status: 200, body: {} }
 
       return { status: 200, body: [] }
@@ -397,7 +448,8 @@ describe('release', () => {
 
   it('leaves the request open when it cannot be set to merge', async () => {
     world.route = routes((method, url) => {
-      if (method === 'GET' && url.includes('source_branch=develop')) return { status: 200, body: [{ iid: 9 }] }
+      if (method === 'GET' && url.includes('source_branch=develop'))
+        return { status: 200, body: [{ iid: 9 }] }
       if (method === 'PUT') return { status: 405, body: null }
 
       return { status: 200, body: [] }
@@ -410,7 +462,9 @@ describe('release', () => {
 
   it('fails when the request cannot be created', async () => {
     world.route = routes((method) =>
-      method === 'POST' ? { status: 409, body: { message: 'x' } } : { status: 200, body: [] },
+      method === 'POST'
+        ? { status: 409, body: { message: 'x' } }
+        : { status: 200, body: [] },
     )
 
     await main('release')
@@ -420,7 +474,9 @@ describe('release', () => {
 
   it('closes the issues whose advisory is gone', async () => {
     world.exec = (command, args) =>
-      command === 'npm' && args[0] === 'audit' ? JSON.stringify({ vulnerabilities: {} }) : ''
+      command === 'npm' && args[0] === 'audit'
+        ? JSON.stringify({ vulnerabilities: {} })
+        : ''
     world.route = routes((method, url) => {
       if (method === 'GET' && url.includes('/issues')) {
         return {
@@ -462,16 +518,25 @@ describe('release', () => {
 
 describe('tag', () => {
   const manifest = (range) =>
-    JSON.stringify({ name: 'demo', dependencies: { a: range }, devDependencies: { b: '^1.0.0' } })
+    JSON.stringify({
+      name: 'demo',
+      dependencies: { a: range },
+      devDependencies: { b: '^1.0.0' },
+    })
   const git =
-    ({ tags = '1.0.0\n1.1.0', commits = 'chore(deps): update the dependencies', before = manifest('^1.0.0') } = {}) =>
+    ({
+      tags = '1.0.0\n1.1.0',
+      commits = 'chore(deps): update the dependencies',
+      before = manifest('^1.0.0'),
+    } = {}) =>
     (command, args) => {
       const line = [command, ...args].join(' ')
 
       if (line === 'git tag --list') return tags
       if (line.startsWith('git log')) return commits
       if (line.startsWith('git show')) return before
-      if (command === 'gpg' && args[0] === '--list-secret-keys') return 'fpr:::::::::ABCDEF:'
+      if (command === 'gpg' && args[0] === '--list-secret-keys')
+        return 'fpr:::::::::ABCDEF:'
 
       return ''
     }
@@ -483,9 +548,11 @@ describe('tag', () => {
     await main('tag')
 
     expect(ran('git tag -s 1.1.1 -m 1.1.1 abc123')).toBe(true)
-    expect(ran('git push https://oauth2:secret-token@gitlab.com/zairakai/npm-packages/demo.git refs/tags/1.1.1')).toBe(
-      true,
-    )
+    expect(
+      ran(
+        'git push https://oauth2:secret-token@gitlab.com/zairakai/npm-packages/demo.git refs/tags/1.1.1',
+      ),
+    ).toBe(true)
     expect(ran('git config user.signingkey ABCDEF')).toBe(true)
     expect(said('Tag 1.1.1 signed and pushed')).toBe(true)
   })
@@ -524,13 +591,15 @@ describe('tag', () => {
       let installed = false
 
       return (command, args) => {
-        if (command === 'gpg' && args[0] === '--version' && !installed) throw new Error('gpg: not found')
+        if (command === 'gpg' && args[0] === '--version' && !installed)
+          throw new Error('gpg: not found')
         if (installers.includes(command)) {
           installed = true
 
           return ''
         }
-        if (command === 'apk' || command === 'apt-get') throw new Error(`${command}: not found`)
+        if (command === 'apk' || command === 'apt-get')
+          throw new Error(`${command}: not found`)
 
         return git()(command, args)
       }
@@ -561,7 +630,8 @@ describe('tag', () => {
     it('fails when it is still missing after the install', async () => {
       world.files.set('package.json', manifest('^1.1.0'))
       world.exec = (command, args) => {
-        if (command === 'gpg' && args[0] === '--version') throw new Error('gpg: not found')
+        if (command === 'gpg' && args[0] === '--version')
+          throw new Error('gpg: not found')
 
         return git()(command, args)
       }
@@ -601,16 +671,20 @@ describe('audit', () => {
       pipeline = 201,
     } = {}) =>
     (method, url) => {
-      if (method === 'GET' && url.includes('/issues')) return { status: 200, body: issues }
+      if (method === 'GET' && url.includes('/issues'))
+        return { status: 200, body: issues }
       if (method === 'POST' && url.endsWith('/issues')) return created
-      if (method === 'GET' && url.includes('/merge_requests')) return { status: 200, body: mergeRequests }
-      if (method === 'POST' && url.endsWith('/pipeline')) return { status: pipeline, body: {} }
+      if (method === 'GET' && url.includes('/merge_requests'))
+        return { status: 200, body: mergeRequests }
+      if (method === 'POST' && url.endsWith('/pipeline'))
+        return { status: pipeline, body: {} }
 
       return { status: 200, body: {} }
     }
 
   beforeEach(() => {
-    world.exec = (command, args) => (command === 'npm' && args[0] === 'audit' ? report('high') : '')
+    world.exec = (command, args) =>
+      command === 'npm' && args[0] === 'audit' ? report('high') : ''
   })
 
   it('opens an issue for an advisory, alerts, and says that the update is by hand', async () => {
@@ -621,7 +695,10 @@ describe('audit', () => {
 
     expect(said('1 security advisory(ies) found.')).toBe(true)
     expect(said('Issue created: https://gitlab.com/i/1')).toBe(true)
-    expect(requested('POST', '/issues')[0].body).toMatchObject({ title: TITLE, assignee_ids: [7] })
+    expect(requested('POST', '/issues')[0].body).toMatchObject({
+      title: TITLE,
+      assignee_ids: [7],
+    })
     expect(requested('POST', 'ntfy.example')).toHaveLength(1)
     expect(said('AUTO_FIX is off')).toBe(true)
   })
@@ -664,7 +741,9 @@ describe('audit', () => {
       JSON.stringify({
         packages: {
           '': { dependencies: { '@zairakai/other': '^1.0.0' } },
-          'node_modules/@zairakai/other': { dependencies: { minimatch: '^1.0.0' } },
+          'node_modules/@zairakai/other': {
+            dependencies: { minimatch: '^1.0.0' },
+          },
           'node_modules/minimatch': { version: '1.0.0' },
         },
       }),
@@ -678,7 +757,9 @@ describe('audit', () => {
   })
 
   it('fails when the issue cannot be created', async () => {
-    world.route = routes(answering({ created: { status: 500, body: { message: 'x' } } }))
+    world.route = routes(
+      answering({ created: { status: 500, body: { message: 'x' } } }),
+    )
 
     await main('audit')
 
@@ -687,7 +768,8 @@ describe('audit', () => {
 
   it('does not alert for an advisory of a low severity, which only gets its issue', async () => {
     process.env.NTFY_URL = 'https://ntfy.example/topic'
-    world.exec = (command, args) => (command === 'npm' && args[0] === 'audit' ? report('low') : '')
+    world.exec = (command, args) =>
+      command === 'npm' && args[0] === 'audit' ? report('low') : ''
     world.route = routes(answering())
 
     await main('audit')
@@ -703,21 +785,38 @@ describe('audit', () => {
         minimatch: {
           name: 'minimatch',
           severity: 'high',
-          via: [{ source: 1, name: 'minimatch', url: 'https://github.com/advisories/GHSA-aaaa', severity: 'high' }],
+          via: [
+            {
+              source: 1,
+              name: 'minimatch',
+              url: 'https://github.com/advisories/GHSA-aaaa',
+              severity: 'high',
+            },
+          ],
         },
         nanoid: {
           name: 'nanoid',
           severity: 'low',
-          via: [{ source: 2, name: 'nanoid', url: 'https://github.com/advisories/GHSA-bbbb', severity: 'low' }],
+          via: [
+            {
+              source: 2,
+              name: 'nanoid',
+              url: 'https://github.com/advisories/GHSA-bbbb',
+              severity: 'low',
+            },
+          ],
         },
       },
     })
-    world.exec = (command, args) => (command === 'npm' && args[0] === 'audit' ? both : '')
+    world.exec = (command, args) =>
+      command === 'npm' && args[0] === 'audit' ? both : ''
     world.route = routes(answering())
 
     await main('audit')
 
-    expect(requested('POST', 'ntfy.example')[0].body).toContain('1 more of a low severity')
+    expect(requested('POST', 'ntfy.example')[0].body).toContain(
+      '1 more of a low severity',
+    )
   })
 
   it('starts the urgent update when AUTO_FIX is on', async () => {
@@ -727,7 +826,10 @@ describe('audit', () => {
     await main('audit')
 
     expect(said('Update started.')).toBe(true)
-    expect(requested('POST', '/pipeline')[0].body.variables).toContainEqual({ key: 'UPDATE_URGENT', value: 'true' })
+    expect(requested('POST', '/pipeline')[0].body.variables).toContainEqual({
+      key: 'UPDATE_URGENT',
+      value: 'true',
+    })
   })
 
   it('says when the update could not be started', async () => {
@@ -741,7 +843,13 @@ describe('audit', () => {
 
   it('does not start an update when one is open', async () => {
     process.env.AUTO_FIX = 'true'
-    world.route = routes(answering({ mergeRequests: [{ source_branch: 'chore/update-dependencies-20261110' }] }))
+    world.route = routes(
+      answering({
+        mergeRequests: [
+          { source_branch: 'chore/update-dependencies-20261110' },
+        ],
+      }),
+    )
 
     await main('audit')
 
@@ -750,7 +858,8 @@ describe('audit', () => {
 
   it('leaves the rest to the weekly update when nothing is urgent', async () => {
     process.env.AUTO_FIX = 'true'
-    world.exec = (command, args) => (command === 'npm' && args[0] === 'audit' ? report('moderate') : '')
+    world.exec = (command, args) =>
+      command === 'npm' && args[0] === 'audit' ? report('moderate') : ''
     world.route = routes(answering())
 
     await main('audit')
@@ -767,11 +876,20 @@ describe('policy', () => {
     unblock: { version: '7.0.0', peers: ['typescript-eslint'] },
   }
   const peers = (range) => (command, args) =>
-    command === 'npm' && args[0] === 'view' ? JSON.stringify({ typescript: range }) : defaultExec(command, args)
+    command === 'npm' && args[0] === 'view'
+      ? JSON.stringify({ typescript: range })
+      : defaultExec(command, args)
   const answering =
-    ({ mergeRequests = [], created = { status: 201, body: { iid: 30, web_url: 'https://gitlab.com/mr/30' } } } = {}) =>
+    ({
+      mergeRequests = [],
+      created = {
+        status: 201,
+        body: { iid: 30, web_url: 'https://gitlab.com/mr/30' },
+      },
+    } = {}) =>
     (method, url) => {
-      if (method === 'GET' && url.includes('/merge_requests')) return { status: 200, body: mergeRequests }
+      if (method === 'GET' && url.includes('/merge_requests'))
+        return { status: 200, body: mergeRequests }
       if (method === 'POST' && url.endsWith('/merge_requests')) return created
 
       return { status: 200, body: {} }
@@ -780,7 +898,12 @@ describe('policy', () => {
   beforeEach(() => {
     world.files.set(
       'node.json',
-      JSON.stringify({ entries: [entry, { package: 'other', reason: 'x', since: '2026-10-11' }] }),
+      JSON.stringify({
+        entries: [
+          entry,
+          { package: 'other', reason: 'x', since: '2026-10-11' },
+        ],
+      }),
     )
   })
 
@@ -814,7 +937,11 @@ describe('policy', () => {
 
   it('does not open a second merge request', async () => {
     world.exec = peers('>=4.8.4 <8')
-    world.route = routes(answering({ mergeRequests: [{ source_branch: 'chore/unblock-20261110' }] }))
+    world.route = routes(
+      answering({
+        mergeRequests: [{ source_branch: 'chore/unblock-20261110' }],
+      }),
+    )
 
     await main('policy')
 
@@ -827,15 +954,23 @@ describe('policy', () => {
 
     await main('policy')
 
-    expect(JSON.parse(world.files.get('node.json')).entries.map((item) => item.package)).toEqual(['other'])
+    expect(
+      JSON.parse(world.files.get('node.json')).entries.map(
+        (item) => item.package,
+      ),
+    ).toEqual(['other'])
     expect(ran('git commit -m chore(policy): unblock typescript')).toBe(true)
-    expect(requested('POST', '/merge_requests')[0].body).toMatchObject({ target_branch: 'main' })
+    expect(requested('POST', '/merge_requests')[0].body).toMatchObject({
+      target_branch: 'main',
+    })
     expect(said('Merge request !30 created.')).toBe(true)
   })
 
   it('fails when the merge request cannot be created', async () => {
     world.exec = peers('>=4.8.4 <8')
-    world.route = routes(answering({ created: { status: 409, body: { message: 'x' } } }))
+    world.route = routes(
+      answering({ created: { status: 409, body: { message: 'x' } } }),
+    )
 
     await main('policy')
 
@@ -852,14 +987,24 @@ describe('update', () => {
   }
   const after = { ...before, dependencies: { a: '^1.1.0' } }
   const lock = JSON.stringify({
-    packages: { '': {}, 'node_modules/a': { version: '1.1.0' }, 'node_modules/@zairakai/x': { version: '1.0.0' } },
+    packages: {
+      '': {},
+      'node_modules/a': { version: '1.1.0' },
+      'node_modules/@zairakai/x': { version: '1.0.0' },
+    },
   })
   const answering =
-    ({ mergeRequests = [], created = { status: 201, body: { iid: 20 } }, merge = 200 } = {}) =>
+    ({
+      mergeRequests = [],
+      created = { status: 201, body: { iid: 20 } },
+      merge = 200,
+    } = {}) =>
     (method, url) => {
-      if (method === 'GET' && url.includes('/merge_requests')) return { status: 200, body: mergeRequests }
+      if (method === 'GET' && url.includes('/merge_requests'))
+        return { status: 200, body: mergeRequests }
       if (method === 'POST' && url.endsWith('/merge_requests')) return created
-      if (method === 'PUT' && url.endsWith('/merge')) return { status: merge, body: {} }
+      if (method === 'PUT' && url.endsWith('/merge'))
+        return { status: merge, body: {} }
 
       return { status: 200, body: {} }
     }
@@ -885,7 +1030,13 @@ describe('update', () => {
   })
 
   it('does nothing when an update is already open', async () => {
-    world.route = routes(answering({ mergeRequests: [{ source_branch: 'chore/update-dependencies-20261110' }] }))
+    world.route = routes(
+      answering({
+        mergeRequests: [
+          { source_branch: 'chore/update-dependencies-20261110' },
+        ],
+      }),
+    )
 
     await main('update')
 
@@ -896,11 +1047,22 @@ describe('update', () => {
   it('updates in the ranges, with the cooling period and without the packages of the policy', async () => {
     await main('update')
 
-    expect(ran('npm-check-updates --target minor --cooldown 3d --reject typescript -u')).toBe(true)
-    expect(ran('npm-check-updates --target minor --filter @zairakai/* --reject typescript -u')).toBe(true)
+    expect(
+      ran(
+        'npm-check-updates --target minor --cooldown 3d --reject typescript -u',
+      ),
+    ).toBe(true)
+    expect(
+      ran(
+        'npm-check-updates --target minor --filter @zairakai/* --reject typescript -u',
+      ),
+    ).toBe(true)
     expect(ran('npm update --no-audit --no-fund --before=')).toBe(true)
     expect(ran('git commit -m chore(deps): update the dependencies')).toBe(true)
-    expect(requested('POST', '/merge_requests')[0].body).toMatchObject({ target_branch: 'develop', milestone_id: 3 })
+    expect(requested('POST', '/merge_requests')[0].body).toMatchObject({
+      target_branch: 'develop',
+      milestone_id: 3,
+    })
     expect(said('Merge request !20 created.')).toBe(true)
   })
 
@@ -910,19 +1072,26 @@ describe('update', () => {
 
     await main('update')
 
-    expect(ran('git add package.json package-lock.json .gitlab-ci.yml')).toBe(true)
+    expect(ran('git add package.json package-lock.json .gitlab-ci.yml')).toBe(
+      true,
+    )
   })
 
   it('does not commit the pipeline file when more than its ref changed', async () => {
     world.files.set('.gitlab-ci.yml', 'x')
-    world.exec = git({ diff: '-    ref: 1.0.0\n+    ref: 1.1.0\n+    other: 1' })
+    world.exec = git({
+      diff: '-    ref: 1.0.0\n+    ref: 1.1.0\n+    other: 1',
+    })
 
     await main('update')
 
     expect(ran('git add package.json package-lock.json')).toBe(true)
-    expect(world.commands.some((command) => command.startsWith('git add') && command.includes('.gitlab-ci.yml'))).toBe(
-      false,
-    )
+    expect(
+      world.commands.some(
+        (command) =>
+          command.startsWith('git add') && command.includes('.gitlab-ci.yml'),
+      ),
+    ).toBe(false)
   })
 
   it('says when everything is up to date', async () => {
@@ -935,7 +1104,10 @@ describe('update', () => {
   })
 
   it('refreshes the whole lock file when the cooling period is not a duration', async () => {
-    world.files.set('.dependency-update.json', JSON.stringify({ cooldown: 'soon', reject: ['left'] }))
+    world.files.set(
+      '.dependency-update.json',
+      JSON.stringify({ cooldown: 'soon', reject: ['left'] }),
+    )
 
     await main('update')
 
@@ -947,7 +1119,8 @@ describe('update', () => {
   it('goes on when the lock file cannot be refreshed', async () => {
     const base = world.exec
     world.exec = (command, args) => {
-      if (command === 'npm' && args[0] === 'update') throw new Error('ETARGET\nmore')
+      if (command === 'npm' && args[0] === 'update')
+        throw new Error('ETARGET\nmore')
 
       return base(command, args)
     }
@@ -964,9 +1137,12 @@ describe('update', () => {
     const base = world.exec
     world.exec = (command, args) => {
       if (command === 'npm' && args[0] === 'audit' && args[1] === '--json') {
-        return JSON.stringify({ vulnerabilities: { minimatch: { range: '>=10.0.0 <10.2.7' } } })
+        return JSON.stringify({
+          vulnerabilities: { minimatch: { range: '>=10.0.0 <10.2.7' } },
+        })
       }
-      if (command === 'npm' && args[0] === 'view') return JSON.stringify(['10.2.6', '10.2.7', '11.0.0'])
+      if (command === 'npm' && args[0] === 'view')
+        return JSON.stringify(['10.2.6', '10.2.7', '11.0.0'])
 
       return base(command, args)
     }
@@ -975,34 +1151,46 @@ describe('update', () => {
 
     expect(ran('--cooldown')).toBe(false)
     expect(ran('npm audit fix --no-fund')).toBe(true)
-    expect(JSON.parse(world.files.get('package.json')).overrides.minimatch).toBe('10.2.7')
+    expect(
+      JSON.parse(world.files.get('package.json')).overrides.minimatch,
+    ).toBe('10.2.7')
     expect(said('The override of minimatch is raised to 10.2.7.')).toBe(true)
   })
 
   it('raises an override that is written as an object', async () => {
     process.env.UPDATE_URGENT = 'true'
-    world.files.set('package.json', JSON.stringify({ ...after, overrides: { 'js-yaml': { '.': '4.3.1' } } }))
+    world.files.set(
+      'package.json',
+      JSON.stringify({ ...after, overrides: { 'js-yaml': { '.': '4.3.1' } } }),
+    )
     const base = world.exec
     world.exec = (command, args) => {
       if (command === 'npm' && args[0] === 'audit' && args[1] === '--json') {
-        return JSON.stringify({ vulnerabilities: { 'js-yaml': { range: '<4.3.2' } } })
+        return JSON.stringify({
+          vulnerabilities: { 'js-yaml': { range: '<4.3.2' } },
+        })
       }
-      if (command === 'npm' && args[0] === 'view') return JSON.stringify(['4.3.1', '4.3.2'])
+      if (command === 'npm' && args[0] === 'view')
+        return JSON.stringify(['4.3.1', '4.3.2'])
 
       return base(command, args)
     }
 
     await main('update')
 
-    expect(JSON.parse(world.files.get('package.json')).overrides['js-yaml']['.']).toBe('4.3.2')
+    expect(
+      JSON.parse(world.files.get('package.json')).overrides['js-yaml']['.'],
+    ).toBe('4.3.2')
   })
 
   it('goes on when the fix of the advisory fails', async () => {
     process.env.UPDATE_URGENT = 'true'
     const base = world.exec
     world.exec = (command, args) => {
-      if (command === 'npm' && args[0] === 'audit' && args[1] === 'fix') throw new Error('no fix\nmore')
-      if (command === 'npm' && args[0] === 'audit') throw new Error('audit down\nmore')
+      if (command === 'npm' && args[0] === 'audit' && args[1] === 'fix')
+        throw new Error('no fix\nmore')
+      if (command === 'npm' && args[0] === 'audit')
+        throw new Error('audit down\nmore')
 
       return base(command, args)
     }
@@ -1017,7 +1205,10 @@ describe('update', () => {
 
   it('has nothing to raise without overrides', async () => {
     process.env.UPDATE_URGENT = 'true'
-    world.files.set('package.json', JSON.stringify({ ...after, overrides: undefined }))
+    world.files.set(
+      'package.json',
+      JSON.stringify({ ...after, overrides: undefined }),
+    )
 
     await main('update')
 
@@ -1025,7 +1216,10 @@ describe('update', () => {
   })
 
   it('stops when the policy cannot be read', async () => {
-    world.route = (method, url) => (url.endsWith(POLICY_URL) ? { status: 503, body: null } : { status: 200, body: [] })
+    world.route = (method, url) =>
+      url.endsWith(POLICY_URL)
+        ? { status: 503, body: null }
+        : { status: 200, body: [] }
 
     await main('update')
 
@@ -1034,7 +1228,9 @@ describe('update', () => {
   })
 
   it('fails when the merge request cannot be created', async () => {
-    world.route = routes(answering({ created: { status: 422, body: { message: 'x' } } }))
+    world.route = routes(
+      answering({ created: { status: 422, body: { message: 'x' } } }),
+    )
 
     await main('update')
 
@@ -1071,6 +1267,8 @@ describe('update', () => {
 
     await main('update')
 
-    expect(requested('POST', '/merge_requests')[0].body).not.toHaveProperty('milestone_id')
+    expect(requested('POST', '/merge_requests')[0].body).not.toHaveProperty(
+      'milestone_id',
+    )
   })
 })

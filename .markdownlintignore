@@ -1,13 +1,12 @@
 .cache/
 .git/
+bootstrap/cache/
 build/
 coverage/
 dist/
 docs/
 node_modules/
-vendor/
-*.min.md
-
-# Laravel: the runtime files and the cache are not source
 storage/
-bootstrap/cache/
+vendor/
+
+*.min.md

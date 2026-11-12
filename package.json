@@ -1,7 +1,7 @@
 {
   "name": "@zairakai/js-dev-tools",
   "version": "1.0.0",
-  "description": "The unified and centralized development toolkit for JavaScript/TypeScript projects - ESLint, Prettier, Stylelint, Knip, Vitest, Git Hooks, and GitLab CI pipeline templates",
+  "description": "The development toolkit of the JavaScript and TypeScript projects for the web: shared ESLint, Prettier, Stylelint, Vitest, TypeScript and markdownlint rules, Knip, Makefile targets, Git hooks and GitLab CI pipeline templates",
   "keywords": [
     "dev-tools",
     "toolkit",
@@ -15,7 +15,12 @@
     "stylelint",
     "vitest",
     "knip",
-    "typescript"
+    "typescript",
+    "markdownlint",
+    "tsconfig",
+    "editorconfig",
+    "vue",
+    "scss"
   ],
   "homepage": "https://js-dev-tools-3fa149.gitlab.io",
   "bugs": {
@@ -103,7 +108,7 @@
     "smol-toml": "1.9.0"
   },
   "dependencies": {
-    "@stanislas-poisson/js-dev-tools": "^2.1.1",
+    "@stanislas-poisson/js-dev-tools": "^3.0.0",
     "eslint": "^10.14.0",
     "markdownlint-cli2": "^0.24.0",
     "prettier": "^3.9.10",
@@ -119,15 +124,24 @@
     "zod": "^4.6.7"
   },
   "peerDependencies": {
+    "@vitest/coverage-v8": "^5.0.0",
     "eslint": "^10.14.0",
     "typedoc": "^0.28.0",
+    "typescript": "^6.0.0",
+    "vitest": "^5.0.0",
     "zod": "^3.0.0 || ^4.0.0"
   },
   "peerDependenciesMeta": {
-    "stylelint": {
+    "@vitest/coverage-v8": {
       "optional": true
     },
     "typedoc": {
+      "optional": true
+    },
+    "typescript": {
+      "optional": true
+    },
+    "vitest": {
       "optional": true
     },
     "zod": {

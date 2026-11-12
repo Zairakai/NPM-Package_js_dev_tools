@@ -1,14 +1,17 @@
-node_modules/
-dist/
-docs/
-build/
-coverage/
-vendor/
-public/
+# Folders
 .nuxt/
 .output/
-*.min.css
-
-# Laravel: the runtime files and the cache are not source
-storage/
+# Laravel: the cache is not source
 bootstrap/cache/
+build/
+coverage/
+dist/
+docs/
+node_modules/
+public/
+# Laravel: the runtime files are not source
+storage/
+vendor/
+
+# Files
+*.min.css

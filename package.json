@@ -108,12 +108,12 @@
     "smol-toml": "1.9.0"
   },
   "dependencies": {
-    "@stanislas-poisson/js-dev-tools": "^3.0.0",
+    "@stanislas-poisson/js-dev-tools": "^3.1.0",
     "eslint": "^10.14.0",
     "markdownlint-cli2": "^0.24.0",
     "prettier": "^3.9.10",
     "semver": "^7.8.6",
-    "stylelint": "^17.16.0"
+    "stylelint": "^18.0.0"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^5.1.0",

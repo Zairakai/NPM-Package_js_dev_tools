@@ -6,7 +6,8 @@ quality:: markdownlint shellcheck eslint prettier stylelint knip ## Run all qual
 	@echo "✅ All quality checks passed"
 
 .PHONY: quality-fix
-quality-fix:: eslint-fix prettier-fix stylelint-fix markdownlint-fix ## Auto-fix all fixable issues
+# Stylelint before Prettier: the fix of a style attribute leaves it badly spaced, and Prettier formats it again
+quality-fix:: eslint-fix stylelint-fix prettier-fix markdownlint-fix ## Auto-fix all fixable issues
 	@echo "✅ All auto-fixes applied"
 
 .PHONY: quality-fast

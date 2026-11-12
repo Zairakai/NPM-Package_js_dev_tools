@@ -71,6 +71,19 @@ teardown() {
   assert_file_contains "${PROJECT_ROOT}/config/.markdownlint.json" "@stanislas-poisson/js-dev-tools/config/.markdownlint.json"
 }
 
+@test "the Stylelint scripts lint the SCSS, CSS and Vue files" {
+  for script in stylelint stylelint-fix; do
+    for extension in scss css vue; do
+      assert_file_contains "${PROJECT_ROOT}/scripts/${script}.sh" "src/**/*.${extension}"
+      assert_file_contains "${PROJECT_ROOT}/scripts/${script}.sh" "resources/**/*.${extension}"
+    done
+  done
+}
+
+@test "quality-fix runs Stylelint before Prettier, which formats again the style attributes that Stylelint fixes" {
+  assert_file_contains "${PROJECT_ROOT}/tools/make/quality.mk" "quality-fix:: eslint-fix stylelint-fix prettier-fix markdownlint-fix"
+}
+
 @test "config/stylelint.config.js re-exports the names of the base, for createStylelintConfig" {
   assert_file_contains "${PROJECT_ROOT}/config/stylelint.config.js" "export * from '@stanislas-poisson/js-dev-tools/stylelint'"
 }

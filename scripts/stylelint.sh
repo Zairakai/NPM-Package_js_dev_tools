@@ -26,16 +26,23 @@ fi
 
 # Lint target depends on project type (overridable via env)
 if [[ "$PROJECT_TYPE" == "laravel-app" ]]; then
-  STYLELINT_TARGET="${STYLELINT_TARGET:-resources/**/*.scss}"
+  STYLELINT_TARGET="${STYLELINT_TARGET:-resources/**/*.scss resources/**/*.css resources/**/*.vue}"
 else
-  STYLELINT_TARGET="${STYLELINT_TARGET:-src/**/*.scss}"
+  STYLELINT_TARGET="${STYLELINT_TARGET:-src/**/*.scss src/**/*.css src/**/*.vue}"
 fi
+
+# STYLELINT_TARGET is a list of globs separated by spaces (one per file type: stylelint lints the style blocks of .vue)
+read -r -a STYLELINT_PATTERNS <<< "$STYLELINT_TARGET"
+STYLELINT_ABSOLUTE=()
+for _pattern in "${STYLELINT_PATTERNS[@]}"; do
+  STYLELINT_ABSOLUTE+=("${PROJECT_ROOT}/${_pattern}")
+done
 
 log_step "Checking: $STYLELINT_TARGET"
 
 # Skip gracefully if no matching files exist (stylelint v16 errors on empty glob)
-if ! has_files "${PROJECT_ROOT}/${STYLELINT_TARGET}"; then
-  log_info "No SCSS/CSS files found matching ${STYLELINT_TARGET} - skipping"
+if ! has_files "${STYLELINT_ABSOLUTE[@]}"; then
+  log_info "No SCSS, CSS or Vue files found matching ${STYLELINT_TARGET} - skipping"
   exit 0
 fi
 
@@ -62,6 +69,6 @@ if [[ ${#EXTRA_IGNORES[@]} -gt 0 ]]; then
   STYLELINT_ARGS+=(--ignore-path "$_TMP_IGNORE")
 fi
 
-"$STYLELINT_BIN" "${STYLELINT_ARGS[@]}" "$STYLELINT_TARGET"
+"$STYLELINT_BIN" "${STYLELINT_ARGS[@]}" "${STYLELINT_PATTERNS[@]}"
 
 log_success "Stylelint check passed"

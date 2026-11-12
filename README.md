@@ -1,8 +1,8 @@
+<p align="center">
+  <img src="https://gitlab.com/zairakai/npm-packages/js-dev-tools/-/raw/main/assets/icon.png" alt="JS Dev Tools" width="160">
+</p>
+
 # JS Dev Tools
-
-![JS Dev Tools](https://gitlab.com/zairakai/npm-packages/js-dev-tools/-/raw/main/assets/banner.png)
-
-`@zairakai/js-dev-tools`
 
 [![Main][pipeline-main-badge]][pipeline-main-link]
 [![Develop][pipeline-develop-badge]][pipeline-develop-link]
@@ -45,14 +45,14 @@ One unified toolkit to set up JavaScript/TypeScript quality tooling. Context-awa
 | Tool | Responsibility |
 | :--- | :--- |
 | **ESLint** | Flat config with TypeScript, Vue 3, and import rules. |
-| **Prettier** | Opinionated formatter with SCSS and Tailwind support. |
-| **Stylelint** | SCSS linting with modern property ordering. |
+| **Prettier** | The defaults of Prettier (80 columns), with the PHP and Blade plugins and the sorting of the imports. |
+| **Stylelint** | SCSS linting with the property order of the style guides, and `createStylelintConfig` to change it. |
 | **Markdownlint** | Consistent Markdown across all documentation. |
-| **Vitest** | Unit testing with v8 coverage: 75 % required, 90 % as the good level. |
+| **Vitest** | Unit testing with v8 coverage of every file of `src/`: 75 % required, 90 % as the good level. |
 | **Knip** | Dead code and unused dependency detection. |
-| **TypeScript** | Shared `tsconfig.base.json` for strict mode builds. |
+| **TypeScript** | Shared `tsconfig.base.json` for TypeScript 6 and the web: strict mode, unchecked indexed access, isolated modules. |
 | **GitLab CI** | Reusable pipeline templates for npm packages and Laravel full-stack. |
-| **Git Hooks** | Automated quality checks and ticket prefixing. |
+| **Git Hooks** | Automated quality checks, ticket prefixing and a commit subject of 50 characters at most. |
 | **Makefile** | Unified `make quality`, `make test`, `make ci` targets (delegated to core). |
 | **Shell Scripts** | Automated setup and config publishing. |
 
@@ -109,6 +109,9 @@ The same checks are npm scripts, for the projects that prefer them: `npm run qua
 
 Extend the shared configs in your project files:
 
+<details>
+<summary>Configuration examples for each tool</summary>
+
 ```js
 // eslint.config.js
 export { default } from '@zairakai/js-dev-tools/eslint'
@@ -130,11 +133,27 @@ export default defineConfig({ ...baseConfig, test: { ...baseConfig.test } })
 { "extends": "@zairakai/js-dev-tools/tsconfig" }
 ```
 
+```js
+// stylelint.config.js: to add, remove or move a property of the order
+import { createStylelintConfig } from '@zairakai/js-dev-tools/stylelint'
+
+export default createStylelintConfig({
+  properties: (list) => list.filter((property) => property !== 'float'),
+})
+```
+
+</details>
+
 ---
 
 ## Tests and coverage
 
-`make test-coverage` and the job `js:test` of the pipeline run Vitest with coverage. The reports are in `coverage/`: the HTML report, `lcov.info`, `cobertura-coverage.xml` (the coverage of the merge request) and `junit.xml` (the test report of the merge request). The base requires 75 % of the lines, functions, branches and statements, and shows 90 % as the good level. A project that is below lowers the threshold in its own file, and raises it again as it adds tests:
+`make test-coverage` and the job `js:test` of the pipeline run Vitest with coverage. The reports are in `coverage/`: the HTML report, `lcov.info`, `cobertura-coverage.xml` (the coverage of the merge request) and `junit.xml` (the test report of the merge request). The coverage counts **every file of `src/`**, tested or not: a file that no test imports lowers it. The base requires 75 % of the lines, functions, branches and statements, and shows 90 % as the good level.
+
+<details>
+<summary>Lowering a threshold in a project</summary>
+
+A project that is below lowers the threshold in its own file, and raises it again as it adds tests:
 
 ```js
 // vitest.config.js
@@ -144,13 +163,18 @@ import { defineConfig, mergeConfig } from 'vitest/config'
 export default mergeConfig(baseConfig, defineConfig({ test: { coverage: { thresholds: { lines: 60 } } } }))
 ```
 
+</details>
+
 The tests do not use globals: `describe`, `it` and `expect` are imported from `vitest`. `coverage/` is ignored by Git and by the tools.
 
 ---
 
 ## Publishing configs
 
-Publish individual config files to `config/dev-tools/` (never overwritten unless `--force`):
+Publish individual config files to `config/dev-tools/` (never overwritten unless `--force`). The setup also creates, at the root, the thin files that the editor extensions look for (`eslint.config.mjs`, `prettier.config.mjs`, `stylelint.config.mjs`, `vitest.config.mjs`, `.markdownlint.json`) and the copies of the ignore files; a file that the project already has is kept.
+
+<details>
+<summary>The publish commands</summary>
 
 ```bash
 # All at once
@@ -171,6 +195,8 @@ bash node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh --publish=styl
 bash node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh --publish=vitest
 bash node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh --publish=tsconfig
 ```
+
+</details>
 
 ---
 
@@ -197,6 +223,9 @@ Available templates:
 
 Both files are entry points: the jobs are in `.gitlab/ci/parts/`, one file per role, and the application includes the parts it needs and none of what only a package does.
 
+<details>
+<summary>The parts of the pipelines</summary>
+
 | Part | Jobs | Package | Application |
 | :--- | :--- | :---: | :---: |
 | `base.yml` | workflow, runner, variables, hidden jobs | yes | yes |
@@ -205,11 +234,16 @@ Both files are entry points: the jobs are in `.gitlab/ci/parts/`, one file per r
 | `updates.yml` | `deps:update`, `deps:audit`, `deps:release`, `deps:tag` | yes | yes |
 | `publish.yml` | build, publish, release, documentation, `deps:cascade` | yes | no |
 
+</details>
+
 ---
 
 ## Automatic updates
 
 The pipeline template updates the dependencies of a project by itself, and this package starts the update of the projects that use it. The rules are in the handbook (`policies/dependency-management.md` and `policies/versioning.md`).
+
+<details>
+<summary>The rules of the automatic updates</summary>
 
 - A weekly schedule with the variable `UPDATE_DEPENDENCIES=true`, or a pipeline started by the cascade, runs `deps:update`: it takes the **minor and patch** updates after a cooling period, opens a merge request into `develop` and merges it **when its pipeline succeeds**. Major versions are never applied.
 - `deps:release` brings `develop` into `main` after such an update, and `deps:tag` tags `main` when a published range (`dependencies`, `peerDependencies`) changed. A project that changed only its development dependencies is not tagged: its published archive is the same.
@@ -232,6 +266,10 @@ The exceptions of a project live in `.dependency-update.json` at its root (every
 
 `tag.when` is `runtime` (default), `always` or `never`, and `tag.level` is `patch` (default) or `minor`. Only the projects that others depend on need a `cascade`. The group variable `GITLAB_TOKEN` is used to open the merge requests and to tag.
 
+</details>
+
+---
+
 ## Development
 
 ```bash
@@ -240,8 +278,6 @@ make test-all         # vitest + bats
 make bats             # shell script tests only
 make doctor           # environment diagnostics
 ```
-
-`make quality` may print a Knip hint: `Remove @vitest/coverage-v8 from ignoreDependencies`. It is a hint, not an error, and the entry stays: the projects whose Vitest config names the provider as a text (`provider: 'v8'`) inherit the list, and Knip cannot link that text to the package.
 
 ---
 

@@ -10,7 +10,7 @@ bats:: ## Run shell script tests (BATS)
 	fi; \
 	FILES=$$(find tests/bats -name "*.bats" 2>/dev/null); \
 	if [ -z "$$FILES" ]; then \
-		echo "ℹ️  No BATS tests found — skipping"; \
+		echo "ℹ️  No BATS tests found, skipping"; \
 	else \
 		bats $$FILES; \
 	fi
@@ -22,7 +22,7 @@ bats-unit:: ## Run BATS unit tests
 		exit 1; \
 	fi; \
 	if [ ! -d tests/bats/unit ] || [ -z "$$(find tests/bats/unit -name "*.bats" 2>/dev/null)" ]; then \
-		echo "ℹ️  No BATS unit tests found — skipping"; \
+		echo "ℹ️  No BATS unit tests found, skipping"; \
 	else \
 		bats tests/bats/unit/*.bats; \
 	fi
@@ -34,7 +34,7 @@ bats-integration:: ## Run BATS integration tests
 		exit 1; \
 	fi; \
 	if [ ! -d tests/bats/integration ] || [ -z "$$(find tests/bats/integration -name "*.bats" 2>/dev/null)" ]; then \
-		echo "ℹ️  No BATS integration tests found — skipping"; \
+		echo "ℹ️  No BATS integration tests found, skipping"; \
 	else \
 		bats tests/bats/integration/*.bats; \
 	fi

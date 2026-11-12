@@ -14,9 +14,13 @@ export default {
   // "Referenced optional peerDependencies" is informational - stylelint is intentionally optional
   exclude: ['optionalPeerDependencies'],
 
+  // The Stylelint rules come with @zairakai/js-dev-tools, which gives their absolute paths in the configuration: a project
+  // does not list them, so the plugin of Knip for Stylelint would report each of them as unlisted
+  stylelint: false,
+
   ignoreDependencies: [
-    // Coverage provider - referenced as string in config/vitest.config.js (provider: 'v8')
-    '@vitest/coverage-v8',
+    // The binary of Stylelint comes with @zairakai/js-dev-tools too; a project may list it or not
+    'stylelint',
 
     // Optional peer dep bundled for consumers
     'zod',

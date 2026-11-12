@@ -78,6 +78,36 @@ assert_dir_exists() {
   fi
 }
 
+# Assert a file contains a fixed string
+assert_file_contains() {
+  local file="$1"
+  local text="$2"
+
+  if ! grep -qF -- "$text" "$file"; then
+    echo "ASSERTION FAILED: ${file} does not contain: ${text}" >&2
+    return 1
+  fi
+}
+
+# Assert a file does not contain a fixed string
+assert_file_not_contains() {
+  local file="$1"
+  local text="$2"
+
+  if grep -qF -- "$text" "$file"; then
+    echo "ASSERTION FAILED: ${file} contains: ${text}" >&2
+    return 1
+  fi
+}
+
+# Assert two files are identical
+assert_same_file() {
+  if ! diff -q "$1" "$2" >/dev/null; then
+    echo "ASSERTION FAILED: $1 and $2 differ" >&2
+    return 1
+  fi
+}
+
 # Assert output contains string
 # shellcheck disable=SC2154  # $output is a BATS magic variable
 assert_output_contains() {

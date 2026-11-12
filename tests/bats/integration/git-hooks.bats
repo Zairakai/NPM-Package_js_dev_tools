@@ -108,11 +108,17 @@ run_commit_msg() {
   [ "$status" -eq 0 ]
 }
 
-@test "commit-msg rejects a first line over 72 characters" {
-  run_commit_msg "feat(auth): #1 this is a very long commit message that exceeds the maximum length\n"
+@test "commit-msg rejects a subject over 50 characters" {
+  run_commit_msg "feat(auth): #1 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
 
   [ "$status" -eq 1 ]
-  [[ "$output" =~ "the limit is 72" ]]
+  [[ "$output" =~ "the limit is 50" ]]
+}
+
+@test "commit-msg counts the subject only, not the type, the scope and the ticket" {
+  run_commit_msg "refactor(a-long-scope-name): #123456 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+
+  [ "$status" -eq 0 ]
 }
 
 @test "commit-msg rejects a second line that is not blank" {

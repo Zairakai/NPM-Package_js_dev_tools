@@ -8,5 +8,11 @@
       "@zairakai/js-dev-tools": ["./index.js"]
     }
   },
-  "include": ["index.js", "config/**/*.js", "scripts/**/*.js", "tests/**/*.js", "tests/**/*.ts"]
+  "include": [
+    "index.js",
+    "config/**/*.js",
+    "scripts/**/*.js",
+    "tests/**/*.js",
+    "tests/**/*.ts"
+  ]
 }

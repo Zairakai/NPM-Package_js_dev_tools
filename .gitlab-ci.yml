@@ -15,3 +15,4 @@ variables:
 
   # Self-hosted mode: scripts live in this repo, not in node_modules/
   JS_DEV_TOOLS_SCRIPTS: 'scripts'
+  JS_DEV_TOOLS_GITLAB_SCRIPTS: '.gitlab/scripts'

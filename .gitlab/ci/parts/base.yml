@@ -30,6 +30,8 @@ variables:
   # Consumer projects do NOT need to override these.
   # dev-tools itself overrides them in its own .gitlab-ci.yml.
   JS_DEV_TOOLS_SCRIPTS: 'node_modules/@zairakai/js-dev-tools/scripts'
+  # The scripts of the jobs of the release: the notes of a version.
+  JS_DEV_TOOLS_GITLAB_SCRIPTS: 'node_modules/@zairakai/js-dev-tools/.gitlab/scripts'
 
   # NODE
   # ================

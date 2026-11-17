@@ -20,8 +20,22 @@ setup_test_env() {
   # Source config.sh for helpers
   # DEV_TOOLS_ROOT must be set before sourcing (config.sh uses it for path resolution)
   export DEV_TOOLS_ROOT="${PROJECT_ROOT}"
+
+  # config.sh sets "set -euo pipefail" and its own traps: left in the test, they replace what Bats relies on, and a test
+  # that fails ends silently, without a "not ok". The options and the traps of Bats are put back.
+  local saved_flags="$-" saved_pipefail saved_traps
+  saved_pipefail="$(set +o | grep ' pipefail$')"
+  saved_traps="$(trap -p EXIT INT TERM)"
+
   # shellcheck source=../../../scripts/config.sh
   source "${SCRIPT_DIR}/config.sh" 2>/dev/null || true
+
+  set +eu
+  [[ "$saved_flags" == *e* ]] && set -e
+  [[ "$saved_flags" == *u* ]] && set -u
+  eval "$saved_pipefail"
+  trap - EXIT INT TERM
+  eval "$saved_traps"
 }
 
 # Teardown test environment
@@ -159,4 +173,35 @@ MOCK_EOF
 
   chmod +x "${mock_dir}/${command_name}"
   export PATH="${mock_dir}:${PATH}"
+}
+
+# Command that runs the given shell body, found first in the PATH
+fake_command() {
+  local command_name="$1"
+  local body="$2"
+  local fake_dir="${TEST_TEMP_DIR}/fake-bin"
+
+  mkdir -p "$fake_dir"
+  printf '#!/usr/bin/env bash\n%s\n' "$body" > "${fake_dir}/${command_name}"
+  chmod +x "${fake_dir}/${command_name}"
+
+  case ":${PATH}:" in
+    *":${fake_dir}:"*) ;;
+    *) export PATH="${fake_dir}:${PATH}" ;;
+  esac
+}
+
+# Project with a copy of scripts/ (the scripts take their root from their own folder), a node_modules/ (config.sh refuses a
+# project without it) and a package.json
+make_script_project() {
+  export PROJECT="${TEST_TEMP_DIR}/project"
+
+  mkdir -p "${PROJECT}/node_modules"
+  cp -R "${PROJECT_ROOT}/scripts" "${PROJECT}/scripts"
+  printf '{\n  "name": "sample"\n}\n' > "${PROJECT}/package.json"
+}
+
+# Skips the test when a tool that it needs is not installed (the image of the pipeline has fewer tools than a machine)
+require_command() {
+  command -v "$1" > /dev/null 2>&1 || skip "$1 is not installed"
 }

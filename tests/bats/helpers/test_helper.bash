@@ -205,3 +205,26 @@ make_script_project() {
 require_command() {
   command -v "$1" > /dev/null 2>&1 || skip "$1 is not installed"
 }
+
+# Project with the layout of an installed package (node_modules/@zairakai/js-dev-tools), set up and with the configurations
+# published: a project that ran `npm install`, then the setup
+make_installed_project() {
+  export PROJECT="${TEST_TEMP_DIR}/project"
+  export PACKAGE="${PROJECT}/node_modules/@zairakai/js-dev-tools"
+  export DEV_TOOLS_NO_DOCKER=true
+
+  local path group
+
+  mkdir -p "${PACKAGE}"
+  for path in scripts stubs config tools .editorconfig package.json; do
+    cp -R "${PROJECT_ROOT}/${path}" "${PACKAGE}/"
+  done
+
+  printf '{\n  "name": "acme-sample"\n}\n' > "${PROJECT}/package.json"
+
+  (cd "${PROJECT}" && bash "${PACKAGE}/scripts/setup-project.sh" --silent) > /dev/null 2>&1
+  for group in quality style testing; do
+    (cd "${PROJECT}" && bash "${PACKAGE}/scripts/setup-project.sh" "--publish=${group}" --silent) > /dev/null 2>&1
+  done
+}
+

@@ -198,6 +198,16 @@ bash node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh --publish=tsco
 
 </details>
 
+`make setup-check` tells which files of the setup are missing or differ from what the package publishes now (it writes nothing, and exits with 1 when a file is missing or different). A file that differs can be a change of the project or a file late on the package: the check shows the difference, you decide what to keep. It covers the Makefile (it must include the dev-tools), `.editorconfig`, `config/dev-tools/` and the thin files and copies of the root. The CI file, the governance files, the hooks and `tsconfig.json` are not checked: a project makes them its own. In a Laravel app with `laravel-dev-tools`, the Makefile and `.editorconfig` belong to it and are not checked here.
+
+`make setup-update` publishes again the files that `make setup-check` reports (missing or different), and only those. A file of the project that it replaces is copied first in `.dev-tools-backup/`: nothing is merged, you put your own settings back from the copy. `DRY_RUN=true make setup-update` lists the files without writing.
+
+`make uninstall` (or `bash node_modules/@zairakai/js-dev-tools/scripts/uninstall-package.sh`) removes the files of the setup that are still what the package publishes, and the git hooks that the setup linked. A file that the project changed is kept and named; the files of `config/dev-tools/` that were changed go only after confirmation (or `--force`). Everything that is removed is copied first in `.dev-tools-backup/<date>/` (UTC), under its path from the root, and that folder is kept: `cp -R .dev-tools-backup/<date>/. .` puts it all back. `--dry-run` lists the files and removes nothing.
+
+`bash node_modules/@zairakai/js-dev-tools/scripts/check-config-copies.sh` checks that the root agrees with `config/dev-tools/` (the copies of the ignore files and the thin files); `SYNC=true` writes the copies again from `config/dev-tools/`.
+
+In a full-stack project (`laravel-dev-tools` and this package), `make setup-check`, `make setup-update` and `make uninstall` run the Laravel script first, then this one.
+
 ---
 
 ## GitLab CI pipeline templates

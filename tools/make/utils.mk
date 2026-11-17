@@ -26,3 +26,16 @@ package-validate: ## Validate package.json and lockfile sync
 .PHONY: outdated
 outdated: ## Check for outdated npm dependencies
 	@bash $(NPM_DIRECTORY_TOOLS_SCRIPTS_DIR)/outdated.sh
+
+# Double colon: in a full-stack project, the targets of laravel-dev-tools and the ones of this package both run
+.PHONY: setup-check
+setup-check:: ## Tell which files of the setup are missing or differ from the package (writes nothing)
+	@bash $(NPM_DIRECTORY_TOOLS_SCRIPTS_DIR)/setup-check.sh
+
+.PHONY: setup-update
+setup-update:: ## Replace the files that setup-check reports
+	@bash $(NPM_DIRECTORY_TOOLS_SCRIPTS_DIR)/setup-update.sh
+
+.PHONY: uninstall
+uninstall:: ## Remove the setup files (copy kept in .dev-tools-backup/)
+	@bash $(NPM_DIRECTORY_TOOLS_SCRIPTS_DIR)/uninstall-package.sh

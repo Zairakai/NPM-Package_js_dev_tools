@@ -8,6 +8,7 @@ import {
   advisoryLabels,
   advisoryTitle,
   auditAlert,
+  auditGate,
   cooldownDate,
   detectEcosystem,
   diffDependencies,
@@ -428,9 +429,39 @@ describe('advisories', () => {
     )
   })
 
-  it('fixes without waiting only the serious or unknown severities', () => {
-    expect(['critical', 'high', ''].every(isUrgent)).toBe(true)
-    expect(['moderate', 'low'].some(isUrgent)).toBe(false)
+  it('fixes without waiting only the serious severities, an unknown one counts as medium', () => {
+    expect(['critical', 'high'].every(isUrgent)).toBe(true)
+    expect(['moderate', 'low', ''].some(isUrgent)).toBe(false)
+  })
+
+  it('blocks a pipeline at the level that is fixed without waiting, and lists the others (an unknown severity is a medium one)', () => {
+    const report = {
+      vulnerabilities: {
+        a: { name: 'a', via: [{ name: 'a', source: 1, severity: 'high' }] },
+        b: { name: 'b', via: [{ name: 'b', source: 2, severity: 'moderate' }] },
+        c: { name: 'c', via: [{ name: 'c', source: 3, severity: 'low' }] },
+        d: { name: 'd', via: [{ name: 'd', source: 4 }] },
+      },
+    }
+
+    const { blocking, other } = auditGate(report)
+
+    expect(blocking.map((row) => row.package)).toEqual(['a'])
+    expect(other.map((row) => row.package)).toEqual(['b', 'c', 'd'])
+  })
+
+  it('passes a pipeline when the report has no advisory', () => {
+    expect(auditGate({ vulnerabilities: {} })).toEqual({
+      blocking: [],
+      other: [],
+    })
+  })
+
+  it('refuses a report that is not an audit', () => {
+    expect(() => auditGate({ error: { code: 'ENOTFOUND' } })).toThrow(
+      'npm audit could not run',
+    )
+    expect(() => auditGate(null)).toThrow('npm audit could not run')
   })
 
   it('notifies from moderate up, and for an unknown severity', () => {

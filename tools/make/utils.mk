@@ -28,6 +28,10 @@ outdated: ## Check for outdated npm dependencies
 	@bash $(NPM_DIRECTORY_TOOLS_SCRIPTS_DIR)/outdated.sh
 
 # Double colon: in a full-stack project, the targets of laravel-dev-tools and the ones of this package both run
+.PHONY: security-audit
+security-audit:: ## Run npm security audit
+	@bash $(NPM_DIRECTORY_TOOLS_SCRIPTS_DIR)/security-audit.sh
+
 .PHONY: setup-check
 setup-check:: ## Tell which files of the setup are missing or differ from the package (writes nothing)
 	@bash $(NPM_DIRECTORY_TOOLS_SCRIPTS_DIR)/setup-check.sh

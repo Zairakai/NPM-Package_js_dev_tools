@@ -198,6 +198,11 @@ make_script_project() {
 
   mkdir -p "${PROJECT}/node_modules"
   cp -R "${PROJECT_ROOT}/scripts" "${PROJECT}/scripts"
+
+  # update-dependencies.mjs imports semver: the copy of the scripts finds it where its own folder says
+  if [[ -d "${PROJECT_ROOT}/node_modules/semver" ]]; then
+    ln -s "${PROJECT_ROOT}/node_modules/semver" "${PROJECT}/node_modules/semver"
+  fi
   printf '{\n  "name": "sample"\n}\n' > "${PROJECT}/package.json"
 }
 

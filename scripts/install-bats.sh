@@ -57,10 +57,10 @@ version_ge() {
   fi
 
   local IFS=.
-  # shellcheck disable=SC2206
-  local ver1_arr=($ver1) ver2_arr=($ver2)
+  local i ver1_arr ver2_arr
+  read -ra ver1_arr <<< "$ver1"
+  read -ra ver2_arr <<< "$ver2"
 
-  local i
   for ((i=${#ver1_arr[@]}; i<${#ver2_arr[@]}; i++)); do
     ver1_arr[i]=0
   done
@@ -221,4 +221,7 @@ main() {
   fi
 }
 
-main "$@"
+# Not run when the file is sourced (the tests load the functions)
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi

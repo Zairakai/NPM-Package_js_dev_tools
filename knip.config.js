@@ -9,10 +9,11 @@ export default {
   stylelint: false,
   ignore: [...(baseConfig.ignore ?? []), 'stylelint.config.mjs'],
   ignoreDependencies: [
-    ...baseConfig.ignoreDependencies,
+    // Stylelint is a dependency of this package that Knip sees as used: the ignore of the base is for the projects, which
+    // may list it or not
+    ...baseConfig.ignoreDependencies.filter((name) => name !== 'stylelint'),
     // The tools are run by the shell scripts of the package (scripts/*.sh), which Knip does not read
     'eslint',
     'prettier',
-    'stylelint',
   ],
 }

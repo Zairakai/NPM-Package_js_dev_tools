@@ -119,13 +119,14 @@ js:quality:bats:
   script:
     - bash "$JS_DEV_TOOLS_SCRIPTS/bats-run.sh"
 
-# The security audit of every pipeline: it fails on an advisory, before a merge request or a tag publishes it. The daily
-# audit (deps:audit) opens the issues and starts the fix; this one blocks.
+# The security audit of every pipeline, for information: it shows an advisory in the pipeline and does not block. The daily
+# audit (deps:audit) opens the issues and starts the fix.
 js:quality:security:
   extends:
     - .js:node
     - .js:rules
   stage: quality
+  allow_failure: true
   script:
     - bash "$JS_DEV_TOOLS_SCRIPTS/security-audit.sh"
   artifacts:

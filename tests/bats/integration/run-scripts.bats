@@ -2,7 +2,8 @@
 #
 # Integration Tests for scripts/bats-run.sh and scripts/validate-shellcheck.sh
 #
-# Each test builds a small project with its own Bats files or shell scripts and runs the script on it.
+# Each test builds a small project and runs the script on it. The count of the tests of bats-run.sh is checked by the job
+# js:quality:bats, which runs it on this repository.
 #
 
 # Load test helpers
@@ -25,12 +26,6 @@ run_in_project() {
   run bash "${PROJECT}/scripts/${script}" "$@"
 }
 
-# A Bats file with the given tests (name:body pairs are written by the caller)
-write_bats() {
-  mkdir -p "${PROJECT}/tests/bats"
-  printf '#!/usr/bin/env bats\n%s\n' "$2" > "${PROJECT}/tests/bats/$1.bats"
-}
-
 # bats-run.sh
 # ================
 
@@ -39,37 +34,6 @@ write_bats() {
 
   [ "$status" -eq 0 ]
   [[ "$output" == *"No Bats tests found"* ]]
-}
-
-@test "bats-run.sh passes and counts the tests" {
-  write_bats one '@test "first" { true; }
-@test "second" { true; }'
-
-  run_in_project bats-run.sh
-
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"2 Bats tests passed"* ]]
-}
-
-@test "bats-run.sh fails and shows only the test that failed" {
-  write_bats one '@test "good one" { true; }
-@test "bad one" { false; }'
-
-  run_in_project bats-run.sh
-
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"not ok 2 bad one"* ]]
-  [[ "$output" != *"good one"* ]]
-  [[ "$output" == *"1 Bats test(s) failed"* ]]
-}
-
-@test "bats-run.sh shows every test with VERBOSE=true" {
-  write_bats one '@test "good one" { true; }'
-
-  VERBOSE=true run_in_project bats-run.sh
-
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"ok 1 good one"* ]]
 }
 
 @test "bats-run.sh fails when Bats is not installed" {

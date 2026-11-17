@@ -105,6 +105,7 @@ js:quality:knip:
   script:
     - bash "$JS_DEV_TOOLS_SCRIPTS/knip.sh"
 
+# Node is installed here: the tests of the setup and of the audit run node scripts (they read semver in node_modules/)
 js:quality:bats:
   extends:
     - .js:base
@@ -113,14 +114,10 @@ js:quality:bats:
   stage: quality
   image: ${ALPINE_IMAGE}
   before_script:
-    - apk add --no-cache bash bats git
+    - apk add --no-cache bash bats git nodejs
+    - node --version
   script:
-    - |
-      if [[ -d tests/bats ]]; then
-        bats tests/bats --recursive
-      else
-        echo "No BATS tests found - skipping"
-      fi
+    - bash "$JS_DEV_TOOLS_SCRIPTS/bats-run.sh"
 
 js:quality:outdated:
   extends: .js:node

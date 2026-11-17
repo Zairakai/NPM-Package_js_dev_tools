@@ -4,16 +4,11 @@
 ## —— 🧪 Shell Script Testing ——
 .PHONY: bats
 bats:: ## Run shell script tests (BATS)
-	@if ! command -v bats &>/dev/null; then \
-		echo "❌ BATS not installed - run: make install-bats"; \
-		exit 1; \
-	fi; \
-	FILES=$$(find tests/bats -name "*.bats" 2>/dev/null); \
-	if [ -z "$$FILES" ]; then \
-		echo "ℹ️  No BATS tests found, skipping"; \
-	else \
-		bats $$FILES; \
+	@if [ ! -d tests/bats ]; then \
+		echo "ℹ️  No BATS tests found - skipping"; \
+		exit 0; \
 	fi
+	@bash $(NPM_DIRECTORY_TOOLS_SCRIPTS_DIR)/bats-run.sh
 
 .PHONY: bats-unit
 bats-unit:: ## Run BATS unit tests

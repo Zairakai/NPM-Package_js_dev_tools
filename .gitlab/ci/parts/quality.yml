@@ -105,6 +105,7 @@ js:quality:knip:
   script:
     - bash "$JS_DEV_TOOLS_SCRIPTS/knip.sh"
 
+# Node is installed here: the tests of the setup and of the audit run node scripts (they read semver in node_modules/)
 js:quality:bats:
   extends:
     - .js:base
@@ -113,14 +114,25 @@ js:quality:bats:
   stage: quality
   image: ${ALPINE_IMAGE}
   before_script:
-    - apk add --no-cache bash bats git
+    - apk add --no-cache bash bats git nodejs
+    - node --version
   script:
-    - |
-      if [[ -d tests/bats ]]; then
-        bats tests/bats --recursive
-      else
-        echo "No BATS tests found - skipping"
-      fi
+    - bash "$JS_DEV_TOOLS_SCRIPTS/bats-run.sh"
+
+# The security audit of every pipeline: it fails on an advisory, before a merge request or a tag publishes it. The daily
+# audit (deps:audit) opens the issues and starts the fix; this one blocks.
+js:quality:security:
+  extends:
+    - .js:node
+    - .js:rules
+  stage: quality
+  script:
+    - bash "$JS_DEV_TOOLS_SCRIPTS/security-audit.sh"
+  artifacts:
+    paths:
+      - build/reports/npm-audit.json
+    expire_in: 1 month
+    when: always
 
 js:quality:outdated:
   extends: .js:node

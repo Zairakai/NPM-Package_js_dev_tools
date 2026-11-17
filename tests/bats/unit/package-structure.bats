@@ -300,3 +300,12 @@ teardown() {
   run grep -q '"stubs/"' "${PROJECT_ROOT}/package.json"
   [ "$status" -eq 0 ]
 }
+
+@test "the targets of the setup and of the audit are double-colon, so a full-stack project runs both packages" {
+  local target
+
+  for target in security-audit setup-check setup-update uninstall; do
+    assert_file_contains "${PROJECT_ROOT}/tools/make/utils.mk" "${target}:: "
+  done
+}
+

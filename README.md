@@ -198,6 +198,16 @@ bash node_modules/@zairakai/js-dev-tools/scripts/setup-project.sh --publish=tsco
 
 </details>
 
+`make setup-check` tells which files of the setup are missing or differ from what the package publishes now (it writes nothing, and exits with 1 when a file is missing or different). A file that differs can be a change of the project or a file late on the package: the check shows the difference, you decide what to keep. It covers the Makefile (it must include the dev-tools), `.editorconfig`, `config/dev-tools/` and the thin files and copies of the root. The CI file, the governance files, the hooks and `tsconfig.json` are not checked: a project makes them its own. In a Laravel app with `laravel-dev-tools`, the Makefile and `.editorconfig` belong to it and are not checked here.
+
+`make setup-update` publishes again the files that `make setup-check` reports (missing or different), and only those. A file of the project that it replaces is copied first in `.dev-tools-backup/`: nothing is merged, you put your own settings back from the copy. `DRY_RUN=true make setup-update` lists the files without writing.
+
+`make uninstall` (or `bash node_modules/@zairakai/js-dev-tools/scripts/uninstall-package.sh`) removes the files of the setup that are still what the package publishes, and the git hooks that the setup linked. A file that the project changed is kept and named; the files of `config/dev-tools/` that were changed go only after confirmation (or `--force`). Everything that is removed is copied first in `.dev-tools-backup/<date>/` (UTC), under its path from the root, and that folder is kept: `cp -R .dev-tools-backup/<date>/. .` puts it all back. `--dry-run` lists the files and removes nothing.
+
+`bash node_modules/@zairakai/js-dev-tools/scripts/check-config-copies.sh` checks that the root agrees with `config/dev-tools/` (the copies of the ignore files and the thin files); `SYNC=true` writes the copies again from `config/dev-tools/`.
+
+In a full-stack project (`laravel-dev-tools` and this package), `make setup-check`, `make setup-update` and `make uninstall` run the Laravel script first, then this one.
+
 ---
 
 ## GitLab CI pipeline templates
@@ -230,7 +240,7 @@ Both files are entry points: the jobs are in `.gitlab/ci/parts/`, one file per r
 | :--- | :--- | :---: | :---: |
 | `base.yml` | workflow, runner, variables, hidden jobs | yes | yes |
 | `security.yml` | secret detection, check of the tag | yes | yes |
-| `quality.yml` | install, validate, quality, test | yes | yes |
+| `quality.yml` | install, validate, quality (including `js:quality:security`, the npm audit that fails on an advisory), test | yes | yes |
 | `updates.yml` | `deps:update`, `deps:audit`, `deps:release`, `deps:tag` | yes | yes |
 | `publish.yml` | build, publish, release, documentation, `deps:cascade` | yes | no |
 
@@ -248,6 +258,7 @@ The pipeline template updates the dependencies of a project by itself, and this 
 - A weekly schedule with the variable `UPDATE_DEPENDENCIES=true`, or a pipeline started by the cascade, runs `deps:update`: it takes the **minor and patch** updates after a cooling period, opens a merge request into `develop` and merges it **when its pipeline succeeds**. Major versions are never applied.
 - `deps:release` brings `develop` into `main` after such an update, and `deps:tag` tags `main` when a published range (`dependencies`, `peerDependencies`) changed. A project that changed only its development dependencies is not tagged: its published archive is the same.
 - After the publication of a tag, `deps:cascade` waits for the version to be on the registry, then starts the update of the projects that have a `.dependency-update.json`.
+- `make security-audit` runs `npm audit` and fails when it cannot run, or finds an advisory that is **high or critical** (the report is `build/reports/npm-audit.json`; the others are listed and do not block, and an unknown severity counts as a medium one). It is the level at which the daily `deps:audit` fixes an advisory at once with `AUTO_FIX=true`, and the rule is in one place, `audit-check` of `update-dependencies.mjs`. The job `js:quality:security` runs it on every pipeline, so a merge request or a tag with such an advisory is blocked before it is published. In a full-stack project, the Composer audit runs first, with the same level, then this one.
 - The packages of the [dependency policy](https://gitlab.com/zairakai/dependency-policy) (`node.json`) are never updated. `node node_modules/@zairakai/js-dev-tools/scripts/update-dependencies.mjs policy-check <ref>` fails when the change since `<ref>` updates one of them in `package.json` or `package-lock.json`; it only reads, so it runs on GitHub as well.
 - `dependabot-sync` rewrites the ignore rules of `.github/dependabot.yml`, between `# BEGIN dependency-policy (npm)` and `# END dependency-policy (npm)`, with one rule per package of the policy: the policy is the only place where a package is held back.
 

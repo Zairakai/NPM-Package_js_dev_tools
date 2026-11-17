@@ -16,7 +16,7 @@ git-update: ## Fast-forward all local branches that track a remote
 	@bash $(NPM_DIRECTORY_TOOLS_PACKAGE_ROOT)/tools/scripts/git-update.sh
 
 .PHONY: git-cleanup
-git-cleanup: ## Remove local branches whose remote tracking branch no longer exists
+git-cleanup: ## Remove merged local branches whose remote is gone
 	@bash $(NPM_DIRECTORY_TOOLS_PACKAGE_ROOT)/tools/scripts/git-cleanup.sh
 
 .PHONY: git-rebase

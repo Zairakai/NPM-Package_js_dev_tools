@@ -2,7 +2,7 @@
 /**
  * Automatic updates of the dependencies of a package of the zairakai group.
  *
- * Usage: node update-dependencies.mjs update | release | tag | cascade | audit | policy | policy-validate | policy-check <ref> | dependabot-sync
+ * Usage: node update-dependencies.mjs update | release | tag | cascade | audit | audit-check <report> | policy | policy-validate | policy-check <ref> | dependabot-sync
  *
  * - update: prepare a branch with the minor and patch updates, open a merge request into develop and merge it when its
  *   pipeline succeeds. The pipeline of the merge request is the gate: nothing is tested here.
@@ -12,6 +12,9 @@
  * - audit: look for security advisories, open one issue per advisory and, with AUTO_FIX=true, start an update to fix them
  *   (UPDATE_URGENT=true: the new versions are taken without waiting, `npm audit fix` is run and an override that pins a
  *   vulnerable version is raised).
+ * - audit-check: read the report of `npm audit --json` and fail on an advisory that the daily audit fixes at once (high or
+ *   critical): the same level as `audit`, for the blocking audit of every pipeline (scripts/security-audit.sh). An unknown
+ *   severity counts as a medium one: it does not block.
  * - policy: in the repository dependency-policy, lift the entries whose condition is met (merge request).
  * - policy-validate: in the repository dependency-policy, check the shape of the files.
  * - policy-check: fail when the change since a ref updates a package of the policy (GitLab or GitHub, it only reads).
@@ -589,14 +592,38 @@ export function advisoryTitle(row) {
   return `${ADVISORY_TITLE_PREFIX}${row.package} (${row.id})`
 }
 
-/** Whether an advisory is fixed without waiting for the next weekly update. An unknown severity counts as urgent. */
+/** Whether an advisory is fixed without waiting for the next weekly update. An unknown severity counts as a medium one: it is not. */
 export function isUrgent(severity) {
-  return ['', 'high', 'critical'].includes(severity)
+  return ['high', 'critical'].includes(severity)
 }
 
 /** Whether an advisory is worth a push notification: moderate and above. An unknown severity counts as notable. */
 export function isNotable(severity) {
   return ['', 'moderate', 'high', 'critical'].includes(severity)
+}
+
+/**
+ * The audit that blocks a pipeline, from the JSON report of `npm audit`: an advisory blocks at the level that the daily
+ * audit fixes at once (isUrgent: high or critical). The others, an unknown severity included (it counts as a medium
+ * one), are listed and do not block. A report without
+ * the list of vulnerabilities is not an audit: npm could not run.
+ */
+export function auditGate(report) {
+  if (
+    typeof report?.vulnerabilities !== 'object' ||
+    report.vulnerabilities === null
+  ) {
+    throw new Error(
+      'npm audit could not run: its report has no list of vulnerabilities',
+    )
+  }
+
+  const rows = parseNpmAudit(report)
+
+  return {
+    blocking: rows.filter((row) => isUrgent(row.severity)),
+    other: rows.filter((row) => !isUrgent(row.severity)),
+  }
 }
 
 /**
@@ -1596,12 +1623,35 @@ async function dependabotSync() {
   )
 }
 
+/** The audit of a pipeline: reads the report of `npm audit --json`, and fails on an advisory of the urgent level. */
+function auditCheck(_config, file) {
+  if (!file)
+    throw new Error(
+      'Usage: node update-dependencies.mjs audit-check <report of npm audit --json>',
+    )
+
+  const { blocking, other } = auditGate(JSON.parse(readFileSync(file, 'utf8')))
+  const line = (row) =>
+    `${row.package} (${row.id}, ${row.severity || 'unknown'}): ${row.link}`
+
+  for (const row of other) console.info(`Not blocking: ${line(row)}`)
+  for (const row of blocking) console.error(`Blocking: ${line(row)}`)
+
+  if (blocking.length > 0) {
+    process.exitCode = 1
+    return
+  }
+
+  console.info('No advisory at the high level or above.')
+}
+
 const modes = {
   update,
   release,
   tag,
   cascade,
   audit,
+  'audit-check': auditCheck,
   policy: policyWatch,
   'policy-validate': policyValidate,
   'policy-check': policyCheck,
@@ -1611,7 +1661,7 @@ const modes = {
 export async function main(mode, argument) {
   if (!modes[mode]) {
     console.error(
-      'Usage: node update-dependencies.mjs update | release | tag | cascade | audit | policy | policy-validate',
+      'Usage: node update-dependencies.mjs update | release | tag | cascade | audit | audit-check <report> | policy | policy-validate',
     )
     process.exitCode = 1
     return

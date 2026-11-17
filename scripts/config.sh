@@ -261,7 +261,7 @@ backup_file() {
   local base="${2:-${PROJECT_ROOT}/.dev-tools-backup}"
   [[ ! -f "$file" || -L "$file" ]] && return 1
   if [[ -z "$BACKUP_DIR" ]]; then
-    BACKUP_DIR="${base}/$(date +%Y%m%d-%H%M%S)"
+    BACKUP_DIR="${base}/$(date -u +%Y%m%d-%H%M%S)"
     mkdir -p "$BACKUP_DIR"
   fi
   local rel="${file#"${PROJECT_ROOT}"/}"

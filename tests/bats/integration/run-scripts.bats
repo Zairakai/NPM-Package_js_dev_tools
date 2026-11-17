@@ -36,6 +36,52 @@ run_in_project() {
   [[ "$output" == *"No Bats tests found"* ]]
 }
 
+# A Bats file to find, and a bats command that answers with the given TAP report and exit status
+fake_bats_run() {
+  mkdir -p "${PROJECT}/tests/bats"
+  printf '#!/usr/bin/env bats\n' > "${PROJECT}/tests/bats/one.bats"
+  printf '%s\n' "$1" > "${TEST_TEMP_DIR}/report.tap"
+  fake_command bats "cat '${TEST_TEMP_DIR}/report.tap'; exit $2"
+}
+
+@test "bats-run.sh passes and counts the tests" {
+  fake_bats_run $'1..2\nok 1 first\nok 2 second' 0
+
+  run_in_project bats-run.sh
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"2 Bats tests passed"* ]]
+}
+
+@test "bats-run.sh fails and shows only the test that failed" {
+  fake_bats_run $'1..2\nok 1 good one\nnot ok 2 bad one\n# (in test file one.bats, line 3) failed' 1
+
+  run_in_project bats-run.sh
+
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"not ok 2 bad one"* ]]
+  [[ "$output" != *"good one"* ]]
+  [[ "$output" == *"1 Bats test(s) failed"* ]]
+}
+
+@test "bats-run.sh fails when a test disappears from the report" {
+  fake_bats_run $'1..3\nok 1 first\nok 2 second' 0
+
+  run_in_project bats-run.sh
+
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"planned 3 tests and reported 2"* ]]
+}
+
+@test "bats-run.sh shows every test with VERBOSE=true" {
+  fake_bats_run $'1..1\nok 1 good one' 0
+
+  VERBOSE=true run_in_project bats-run.sh
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"ok 1 good one"* ]]
+}
+
 @test "bats-run.sh fails when Bats is not installed" {
   # PATH with the tools the script needs, but not bats
   local bin="${TEST_TEMP_DIR}/no-bats"

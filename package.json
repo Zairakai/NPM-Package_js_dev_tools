@@ -109,7 +109,7 @@
   },
   "dependencies": {
     "@stanislas-poisson/js-dev-tools": "^3.1.0",
-    "eslint": "^10.14.0",
+    "eslint": "^10.15.0",
     "markdownlint-cli2": "^0.24.1",
     "prettier": "^3.10.1",
     "semver": "^7.8.6",
@@ -125,7 +125,7 @@
   },
   "peerDependencies": {
     "@vitest/coverage-v8": "^5.0.0",
-    "eslint": "^10.14.0",
+    "eslint": "^10.15.0",
     "typedoc": "^0.28.0",
     "typescript": "^6.0.0",
     "vitest": "^5.0.0",
